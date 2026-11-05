@@ -2,6 +2,7 @@
 
 mod assets;
 mod demo;
+mod dock_icon;
 #[cfg(debug_assertions)]
 mod drive;
 mod flows;
@@ -69,6 +70,7 @@ fn main() {
     Application::new()
         .with_assets(assets::Assets)
         .run(move |cx: &mut App| {
+            dock_icon::apply();
             cx.on_action(|_: &Quit, cx| cx.quit());
             cx.on_action(|_: &Hide, cx| cx.hide());
             cx.on_action(|_: &HideOthers, cx| cx.hide_other_apps());
