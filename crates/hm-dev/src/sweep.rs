@@ -938,6 +938,16 @@ impl RawProject {
     }
 }
 
+/// `true` for the build folder this program runs from. A developer's own `target` is otherwise a
+/// perfect candidate, and cleaning it would pull the running app out from under itself.
+fn holds_running_program(path: &Path) -> bool {
+    static PROGRAM: OnceLock<Option<PathBuf>> = OnceLock::new();
+    PROGRAM
+        .get_or_init(hm_core::safety::running_program)
+        .as_ref()
+        .is_some_and(|program| program.starts_with(path))
+}
+
 /// What a subtree reports to its parent. Built bottom-up so that a project's activity and artifacts
 /// are known by the time its boundary is reached, with no second pass over the tree.
 #[derive(Debug, Default)]
@@ -1117,6 +1127,9 @@ fn walk(
             descend.push(path);
             continue;
         };
+        if holds_running_program(&path) {
+            continue;
+        }
         let marker_ok = rule.marker.is_none_or(|marker| path.join(marker).is_file());
         let manifest_ok = if rule.python_scope {
             python_here
@@ -1533,6 +1546,13 @@ pub(crate) fn pins_of(sweep: &Sweep, kind: PinKind) -> HashMap<String, Vec<PathB
 mod tests {
     use super::*;
     use crate::testutil::Fixture;
+
+    #[test]
+    fn the_folder_this_program_runs_from_is_not_an_artifact() {
+        let program = hm_core::safety::running_program().unwrap();
+        assert!(holds_running_program(program.parent().unwrap()));
+        assert!(!holds_running_program(Path::new("/nonexistent/target")));
+    }
 
     fn artifact_labels(sweep: &Sweep) -> Vec<String> {
         let mut labels: Vec<String> = sweep

@@ -26,6 +26,8 @@ pub enum SafetyViolation {
     MountPoint(PathBuf),
     #[error("excluida por el usuario: {0}")]
     UserExcluded(PathBuf),
+    #[error("contiene el programa que se está ejecutando: {0}")]
+    RunningProgram(PathBuf),
     #[error("programa no permitido: {0}")]
     ProgramNotAllowed(String),
 }
@@ -119,6 +121,7 @@ const ALLOWED_PROGRAMS: &[&str] = &[
 pub struct SafetyPolicy {
     home: PathBuf,
     excluded: Vec<PathBuf>,
+    running_program: Option<PathBuf>,
 }
 
 impl SafetyPolicy {
@@ -129,6 +132,7 @@ impl SafetyPolicy {
                 .iter()
                 .map(|path| canonical_or_self(path))
                 .collect(),
+            running_program: running_program(),
         }
     }
 
@@ -181,6 +185,16 @@ impl SafetyPolicy {
             return Err(SafetyViolation::UserExcluded(path.to_path_buf()));
         }
 
+        // A build folder is a fair target, unless it is the one this program runs from: it would
+        // pull its own bundle out from under itself.
+        if self
+            .running_program
+            .as_ref()
+            .is_some_and(|program| program.starts_with(&resolved))
+        {
+            return Err(SafetyViolation::RunningProgram(path.to_path_buf()));
+        }
+
         if resolved.starts_with(&self.home) {
             return self.check_inside_home(path, &resolved);
         }
@@ -216,6 +230,13 @@ impl SafetyPolicy {
             Err(SafetyViolation::ProgramNotAllowed(program.to_string()))
         }
     }
+}
+
+/// Where this program's executable really is, or `None` if macOS won't say.
+pub fn running_program() -> Option<PathBuf> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.canonicalize().ok())
 }
 
 /// An `.app` bundle under `/Applications`, including inside a vendor's folder, but never something
@@ -254,6 +275,24 @@ fn canonical_or_self(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refuses_whatever_contains_the_running_program() {
+        let program = running_program().unwrap();
+        let folder = program.parent().unwrap();
+        let home = folder.parent().unwrap();
+        let policy = SafetyPolicy::new(home, &[]);
+
+        for path in [program.as_path(), folder] {
+            assert!(
+                matches!(
+                    policy.check_removal(path),
+                    Err(SafetyViolation::RunningProgram(_))
+                ),
+                "{path:?} should be refused"
+            );
+        }
+    }
     use std::os::unix::fs::symlink;
 
     struct Home {
