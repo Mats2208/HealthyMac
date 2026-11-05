@@ -1,0 +1,19 @@
+[package]
+name = "hm-core"
+description = "HealthyMac core: data model, scan runner, safety policy and the only code allowed to remove things."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+libc.workspace = true
+trash.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

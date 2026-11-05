@@ -1,0 +1,47 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/hm-core",
+    "crates/hm-system",
+    "crates/hm-dev",
+    "crates/hm-ai",
+    "crates/hm-cli",
+    "crates/hm-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+hm-core = { path = "crates/hm-core" }
+hm-system = { path = "crates/hm-system" }
+hm-dev = { path = "crates/hm-dev" }
+hm-ai = { path = "crates/hm-ai" }
+
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rayon = "1"
+libc = "0.2"
+trash = "5"
+sha2 = "0.10"
+plist = "1"
+sysinfo = "0.40"
+clap = { version = "4", features = ["derive"] }
+tempfile = "3"
+# `runtime_shaders` compiles the Metal shaders at launch, so building does not require Xcode's
+# optional Metal Toolchain component.
+gpui = { version = "0.2.2", features = ["runtime_shaders"] }
+
+# GPUI is unusably slow without optimisation, so dependencies are optimised even
+# in dev builds. Workspace crates stay at opt-level 0 to keep rebuilds fast.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true

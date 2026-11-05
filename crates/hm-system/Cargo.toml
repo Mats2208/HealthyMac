@@ -1,0 +1,19 @@
+[package]
+name = "hm-system"
+description = "HealthyMac: system junk, apps, startup items, disk map, live monitor and health score."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+hm-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+libc.workspace = true
+plist.workspace = true
+sysinfo.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
