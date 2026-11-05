@@ -7,8 +7,10 @@ publish.workspace = true
 license.workspace = true
 repository.workspace = true
 
+# Not `HealthyMac`: on a case-insensitive disk that is the same file as the CLI's `healthymac`, and
+# whichever is built last replaces the other. scripts/bundle.sh gives it its name inside the bundle.
 [[bin]]
-name = "HealthyMac"
+name = "healthymac-app"
 path = "src/main.rs"
 
 [dependencies]
