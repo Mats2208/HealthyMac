@@ -13,6 +13,8 @@ members = [
 version = "0.1.0"
 edition = "2021"
 publish = false
+license = "GPL-3.0-or-later"
+repository = "https://github.com/fernandevdaza/HealthyMac"
 
 [workspace.dependencies]
 hm-core = { path = "crates/hm-core" }

@@ -1878,15 +1878,15 @@ pub(crate) mod tests {
     #[test]
     fn stray_ggufs_in_the_cache_folder_are_found_like_the_real_66_gb_one() {
         let fx = Fixture::new();
-        fx.write(".cache/strata-mlx/Q2_0/m-00001-of-00002.gguf", b"GGUF uno");
-        fx.write(".cache/strata-mlx/Q2_0/m-00002-of-00002.gguf", b"GGUF dos");
-        fx.write(".cache/strata-mlx/tokenizer/tokenizer.json", b"{}");
+        fx.write(".cache/acme-mlx/Q2_0/m-00001-of-00002.gguf", b"GGUF uno");
+        fx.write(".cache/acme-mlx/Q2_0/m-00002-of-00002.gguf", b"GGUF dos");
+        fx.write(".cache/acme-mlx/tokenizer/tokenizer.json", b"{}");
         fx.write(".cache/otra/m.safetensors", b"no se puede saber que es");
         fx.write(".cache/uv/no-entrar/m.gguf", b"GGUF");
         let inventory = inventory(&fx);
         assert_eq!(inventory.models.len(), 1, "{:?}", inventory.models);
         let found = &inventory.models[0];
-        assert_eq!(found.name, "strata-mlx/Q2_0");
+        assert_eq!(found.name, "acme-mlx/Q2_0");
         assert_eq!(found.runtime, RuntimeKind::Other);
         assert_eq!(found.files.len(), 2);
 

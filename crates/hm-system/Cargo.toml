@@ -4,6 +4,8 @@ description = "HealthyMac: system junk, apps, startup items, disk map, live moni
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 hm-core.workspace = true

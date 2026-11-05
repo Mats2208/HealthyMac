@@ -4,6 +4,8 @@ description = "HealthyMac core: data model, scan runner, safety policy and the o
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true

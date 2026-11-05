@@ -358,7 +358,7 @@ mod tests {
 p690
 crapportd
 u501
-Lfernandev
+Lana
 f11
 PTCP
 n*:59358
@@ -368,7 +368,7 @@ n*:59358
 p691
 cControlCenter
 u501
-Lfernandev
+Lana
 f9
 PTCP
 n*:7000
@@ -384,21 +384,21 @@ n*:5000
 p41200
 cDiscord Helper (Renderer)
 u501
-Lfernandev
+Lana
 f40
 PTCP
 n127.0.0.1:6463
 p41300
 cnode
 u501
-Lfernandev
+Lana
 f22
 PTCP
 n[::1]:5173
 p41400
 cpostgres
 u501
-Lfernandev
+Lana
 f7
 PTCP
 n127.0.0.1:5432
@@ -421,7 +421,7 @@ n[::1]:5432
         assert_eq!(node.process_name, "node");
         assert_eq!(node.address, "[::1]");
         assert_eq!(node.uid, Some(501));
-        assert_eq!(node.user, "fernandev");
+        assert_eq!(node.user, "ana");
 
         let discord = listeners
             .iter()
