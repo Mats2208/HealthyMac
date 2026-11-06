@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/tests-662-22c55e?style=flat-square" alt="662 tests">
   <img src="https://img.shields.io/badge/AI%20runtimes-14-8b5cf6?style=flat-square" alt="14 AI runtimes">
   <img src="https://img.shields.io/badge/pages-12-f59e0b?style=flat-square" alt="12 pages">
-  <img src="https://img.shields.io/badge/UI-Spanish-60a5fa?style=flat-square" alt="Interface in Spanish">
+  <img src="https://img.shields.io/badge/UI-English%20%7C%20Spanish-60a5fa?style=flat-square" alt="Interface in English and Spanish">
   <br>
   <img src="https://img.shields.io/badge/Rust-stable-ce422b?style=flat-square&logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/badge/GPUI-Metal-5eead4?style=flat-square" alt="GPUI on Metal">
@@ -164,8 +164,8 @@ Two more tests exercise the real Trash, and are ignored by default because they 
 **Only tested against fixtures:** uninstalling an app, `ollama rm`, Full Disk Access mode, and the Ollama, Jan, GPT4All,
 ComfyUI, Automatic1111 and Draw Things stores.
 
-**Not tested:** other macOS versions (it declares 13+) and other Macs. There's no light theme yet, and the interface is
-only in Spanish.
+**Not tested:** other macOS versions (it declares 13+) and other Macs. The interface comes in light and dark, and in
+English and Spanish; it follows the system unless you pick one in Settings.
 
 ## 🛠️ Development
 
@@ -195,8 +195,9 @@ the app with `open`: from a terminal, macOS attributes the access to the termina
 
 ## 🤝 Contributing
 
-Contributions are welcome, especially reports from other Macs and macOS versions, new tools and runtimes, and an
-English interface. Issues and pull requests in Spanish or English.
+Contributions are welcome, especially reports from other Macs and macOS versions, new tools and runtimes, and more
+languages. Every user-facing string is written with `t!("español", "English")`; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Issues and pull requests in Spanish or English.
 
 ## 📄 License
 

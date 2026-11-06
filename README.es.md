@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/tests-662-22c55e?style=flat-square" alt="662 tests">
   <img src="https://img.shields.io/badge/runtimes%20de%20IA-14-8b5cf6?style=flat-square" alt="14 runtimes de IA">
   <img src="https://img.shields.io/badge/páginas-12-f59e0b?style=flat-square" alt="12 páginas">
-  <img src="https://img.shields.io/badge/interfaz-español-60a5fa?style=flat-square" alt="Interfaz en español">
+  <img src="https://img.shields.io/badge/interfaz-español%20%7C%20inglés-60a5fa?style=flat-square" alt="Interfaz en español e inglés">
   <br>
   <img src="https://img.shields.io/badge/Rust-stable-ce422b?style=flat-square&logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/badge/GPUI-Metal-5eead4?style=flat-square" alt="GPUI sobre Metal">
@@ -165,8 +165,8 @@ Otros dos tests usan la Papelera real, y están ignorados por defecto porque dej
 **Probado solo con datos de prueba:** desinstalar una app, `ollama rm`, el modo con Acceso total al disco, y los almacenes
 de Ollama, Jan, GPT4All, ComfyUI, Automatic1111 y Draw Things.
 
-**Sin probar:** otras versiones de macOS (declara 13+) y otros Macs. Todavía no hay tema claro, y la interfaz solo está en
-español.
+**Sin probar:** otras versiones de macOS (declara 13+) y otros Macs. La interfaz viene en claro y oscuro, y en español e
+inglés; sigue al sistema salvo que elijas otra cosa en Ajustes.
 
 ## 🛠️ Desarrollo
 
@@ -197,7 +197,8 @@ la app con `open`: desde una terminal, macOS atribuye el acceso a la terminal y 
 ## 🤝 Contribuir
 
 Las contribuciones son bienvenidas, sobre todo informes desde otros Macs y versiones de macOS, herramientas y runtimes
-nuevos, y una interfaz en inglés. Issues y pull requests en español o inglés.
+nuevos, y más idiomas. Cada texto se escribe con `t!("español", "English")`; mira [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Issues y pull requests en español o inglés.
 
 ## 📄 Licencia
 
