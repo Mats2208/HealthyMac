@@ -184,9 +184,9 @@ impl Shell {
                         theme::text_1(),
                     ))
                     .child(if total == 0 {
-                        indeterminate_bar("scan-indeterminate", theme::brand_stops(), 6.0)
+                        indeterminate_bar("scan-indeterminate", theme::primary(), 6.0)
                     } else {
-                        progress_bar(fraction, theme::brand_stops(), 6.0)
+                        progress_bar(fraction, theme::primary(), 6.0)
                     })
                     .child(
                         div()
@@ -230,7 +230,7 @@ impl Shell {
                                 .gap(sp(1.5))
                                 .child(progress_bar(
                                     chosen.bytes as f32 / certain as f32,
-                                    theme::brand_stops(),
+                                    theme::primary(),
                                     4.0,
                                 ))
                                 .child(
@@ -277,7 +277,7 @@ impl Shell {
                             .child("Escanear tarda un momento y no cambia nada en tu Mac."),
                     )
                     .into_any_element(),
-                Btn::primary("Escanear", theme::brand_stops())
+                Btn::primary("Escanear")
                     .size(BtnSize::Lg)
                     .icon(Icon::Scan)
                     .build(
@@ -311,11 +311,7 @@ impl Shell {
             return col()
                 .gap(sp(2.5))
                 .child(section_heading("Disco", "Leyendo el disco…".to_string()))
-                .child(indeterminate_bar(
-                    "disk-loading",
-                    (theme::surface_3(), theme::surface_4()),
-                    12.0,
-                ));
+                .child(indeterminate_bar("disk-loading", theme::surface_4(), 12.0));
         };
         let total = disk.total.max(1);
         let used = disk.total.saturating_sub(disk.available);
@@ -437,7 +433,6 @@ impl Shell {
         summary: Summary,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let stops = area.map(theme::area_stops).unwrap_or(theme::brand_stops());
         let label = format!("Limpiar {}", summary.total_label());
         let at_least = summary.is_lower_bound();
         action_bar(
@@ -466,7 +461,7 @@ impl Shell {
                             plural(summary.count, "seleccionado", "seleccionados")
                         )),
                 ),
-            Btn::primary(label, stops).icon(Icon::Sparkle).build(
+            Btn::primary(label).icon(Icon::Sparkle).build(
                 "clean-selection",
                 cx.listener(move |this, _, _, cx| this.review_selection(area, cx)),
             ),

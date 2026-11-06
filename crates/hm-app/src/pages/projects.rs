@@ -119,7 +119,7 @@ impl Shell {
                 } else {
                     empty_state(
                         Icon::Folder,
-                        theme::area_color(ACCENT_AREA),
+                        theme::text_2(),
                         "Buscando proyectos",
                         "Recorremos tus carpetas de código midiendo node_modules, target y compañía.",
                         None,
@@ -348,11 +348,11 @@ impl Shell {
                                                         |this, count| {
                                                             this.child(
                                                                 row()
-                                                                    .text_color(theme::violet())
+                                                                    .text_color(theme::text_2())
                                                                     .child(icon(
                                                                         Icon::ArrowUp,
                                                                         11.0,
-                                                                        theme::violet(),
+                                                                        theme::text_2(),
                                                                     ))
                                                                     .child(count.to_string()),
                                                             )
@@ -455,7 +455,7 @@ impl Shell {
                             row()
                                 .gap(sp(2.5))
                                 .mb(sp(2.5))
-                                .child(icon(Icon::Container, 16.0, theme::area_color(ACCENT_AREA)))
+                                .child(icon(Icon::Container, 16.0, theme::text_2()))
                                 .child(section_title(docker.runtime.clone()))
                                 .child(if docker.daemon_running {
                                     row()
@@ -563,7 +563,7 @@ fn project_details(project: &ProjectInfo) -> impl IntoElement {
                                     "commit sin subir",
                                     "commits sin subir",
                                 ),
-                                theme::violet(),
+                                theme::text_2(),
                             ))
                         }),
                 )

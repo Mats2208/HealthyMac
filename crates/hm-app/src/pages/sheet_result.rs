@@ -230,7 +230,7 @@ impl Shell {
                                 ),
                         )
                     })
-                    .child(Btn::primary("Listo", theme::brand_stops()).build(
+                    .child(Btn::primary("Listo").build(
                         "result-done",
                         cx.listener(|this, _, _, cx| this.close_sheet(cx)),
                     )),

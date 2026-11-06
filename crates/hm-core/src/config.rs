@@ -16,6 +16,17 @@ pub enum RemovalMode {
     DeleteRegenerable,
 }
 
+/// Light or dark interface. Kept with the rest of the settings so one file holds them all.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Appearance {
+    /// Follow macOS.
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -29,6 +40,7 @@ pub struct Config {
     /// Paths the user never wants touched. Enforced by the safety policy.
     pub excluded_paths: Vec<PathBuf>,
     pub removal_mode: RemovalMode,
+    pub appearance: Appearance,
 }
 
 impl Default for Config {
@@ -39,6 +51,7 @@ impl Default for Config {
             large_file_min_bytes: 1_000_000_000,
             excluded_paths: Vec::new(),
             removal_mode: RemovalMode::Trash,
+            appearance: Appearance::System,
         }
     }
 }

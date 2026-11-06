@@ -61,7 +61,7 @@ impl Shell {
                             .occlude()
                             .w(px(SHEET_WIDTH))
                             .max_h(px(max_height))
-                            .rounded(px(radius::XL))
+                            .rounded(px(radius::LG))
                             .bg(theme::sheet_bg())
                             .border_1()
                             .border_color(theme::hairline_strong())
@@ -95,7 +95,7 @@ impl Shell {
             .child(
                 row()
                     .gap(sp(2.5))
-                    .child(spinner("clean-spin", 16.0, theme::teal()))
+                    .child(spinner("clean-spin", 16.0, theme::text_2()))
                     .child(
                         div()
                             .fs(font::HEADLINE)
@@ -107,7 +107,7 @@ impl Shell {
                             }),
                     ),
             )
-            .child(progress_bar(fraction, theme::brand_stops(), 8.0))
+            .child(progress_bar(fraction, theme::primary(), 8.0))
             .child(
                 row()
                     .justify_between()

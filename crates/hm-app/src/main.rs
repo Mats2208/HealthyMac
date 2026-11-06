@@ -173,6 +173,7 @@ fn main() {
                                 toast_serial: 0,
                                 titlebar_pressed: false,
                             };
+                            shell.watch_appearance(window, cx);
                             shell.start_background_loops(cx);
                             #[cfg(debug_assertions)]
                             drive::start(window, cx);

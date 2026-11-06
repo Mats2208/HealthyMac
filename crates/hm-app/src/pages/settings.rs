@@ -4,14 +4,14 @@ use std::path::PathBuf;
 
 use gpui::{div, prelude::*, px, AnyElement, Context, ElementId, FontWeight, SharedString, Window};
 use hm_core::fmt::{human_age, human_size};
-use hm_core::{CleanStatus, RemovalMode};
+use hm_core::{Appearance, CleanStatus, RemovalMode};
 
 use super::{plural, scroll_pane};
 use crate::assets::Icon;
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp, GUTTER};
 use crate::ui::chrome::{card, notice, page_header, section_title, NoticeKind};
-use crate::ui::controls::{icon_button, pill, stepper, Btn, BtnSize};
+use crate::ui::controls::{icon_button, pill, segmented, stepper, Btn, BtnSize};
 use crate::ui::label::path_label;
 use crate::ui::{col, icon, row, TextExt};
 
@@ -51,6 +51,7 @@ impl Shell {
                             None,
                         ))
                     })
+                    .child(self.render_appearance(cx))
                     .child(self.render_removal_mode(cx))
                     .child(self.render_access(cx))
                     .child(self.render_project_settings(cx))
@@ -88,17 +89,17 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let selected = value == current;
-        let accent = theme::teal();
+        let accent = theme::primary();
         row()
             .id(SharedString::from(format!("removal-{value:?}")))
             .gap(sp(3.))
             .items_start()
             .p(sp(3.))
-            .rounded(px(radius::LG))
+            .rounded(px(radius::MD))
             .border_1()
             .cursor_pointer()
             .when(selected, |this| {
-                this.bg(accent.alpha(0.07)).border_color(accent.alpha(0.35))
+                this.bg(theme::surface_1()).border_color(accent.alpha(0.55))
             })
             .when(!selected, |this| {
                 this.bg(theme::surface_1())
@@ -120,12 +121,7 @@ impl Shell {
                         this.border_1().border_color(theme::hairline_strong())
                     })
                     .when(selected, |this| {
-                        this.child(
-                            div()
-                                .size(px(6.))
-                                .rounded_full()
-                                .bg(theme::text_on_accent()),
-                        )
+                        this.child(div().size(px(6.)).rounded_full().bg(theme::on_primary()))
                     }),
             )
             .child(
@@ -198,6 +194,31 @@ impl Shell {
                         }),
                 ),
         )
+    }
+
+    fn render_appearance(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let labels: [SharedString; 3] = ["Sistema".into(), "Claro".into(), "Oscuro".into()];
+        let selected = match self.ctx.config.appearance {
+            Appearance::System => 0,
+            Appearance::Light => 1,
+            Appearance::Dark => 2,
+        };
+        let entity = cx.entity().downgrade();
+        section("Apariencia").child(setting_row(
+            "Tema",
+            "Sistema sigue el modo claro u oscuro de macOS.",
+            segmented("appearance", &labels, selected, move |index, window, cx| {
+                let value = match index {
+                    1 => Appearance::Light,
+                    2 => Appearance::Dark,
+                    _ => Appearance::System,
+                };
+                entity
+                    .update(cx, |shell, cx| shell.set_appearance(value, window, cx))
+                    .ok();
+            })
+            .into_any_element(),
+        ))
     }
 
     fn render_project_settings(&self, cx: &mut Context<Self>) -> impl IntoElement {

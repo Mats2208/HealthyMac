@@ -18,8 +18,6 @@ use crate::ui::chrome::{big_number, card, empty_state, eyebrow, page_header};
 use crate::ui::controls::{dot, live_dot, pill};
 use crate::ui::{clip, col, icon, row, TextExt};
 
-const CPU_STOPS: (u32, u32) = (0x5EEAD4, 0x60A5FA);
-
 impl Shell {
     pub fn render_monitor(&mut self, window: &mut Window, _cx: &mut Context<Self>) -> AnyElement {
         let uptime = self
@@ -120,13 +118,13 @@ impl Shell {
         let mut shades: Vec<Hsla> = Vec::with_capacity(cores.len());
         for (position, cluster) in clusters.iter().enumerate().rev() {
             let color = if position == 0 {
-                theme::hex(CPU_STOPS.0)
+                theme::teal()
             } else {
-                theme::hex(CPU_STOPS.1)
+                theme::slate()
             };
             shades.extend(std::iter::repeat_n(color, cluster.logical_cpus as usize));
         }
-        shades.resize(cores.len(), theme::hex(CPU_STOPS.0));
+        shades.resize(cores.len(), theme::teal());
         let core_label = if clusters.is_empty() {
             format!("{} núcleos", cores.len())
         } else {
@@ -181,7 +179,7 @@ impl Shell {
                         .child(div().h(px(60.)).w_full().child(sparkline(
                             history,
                             100.0,
-                            theme::hex(CPU_STOPS.0),
+                            theme::teal(),
                         )))
                         .child(
                             row().w_full().gap(px(3.)).h(px(28.)).items_end().children(
@@ -211,11 +209,8 @@ impl Shell {
         let other = memory.used.saturating_sub(accounted);
         let free = memory.total.saturating_sub(memory.used.max(accounted));
         let fraction = |bytes: u64| bytes as f32 / total as f32;
-        let (app_color, wired_color, compressed_color) = (
-            theme::hex(0x60A5FA),
-            theme::hex(0xA78BFA),
-            theme::hex(0xFBBF24),
-        );
+        let (app_color, wired_color, compressed_color) =
+            (theme::slate(), theme::violet(), theme::orange());
         let segments: Vec<(f32, Background)> = vec![
             (fraction(memory.app), app_color.into()),
             (fraction(memory.wired), wired_color.into()),

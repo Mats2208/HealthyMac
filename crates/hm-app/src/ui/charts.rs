@@ -119,17 +119,18 @@ pub fn paint_ring(
     );
 }
 
-/// The stops the ring uses for a given score: greener when healthier, never alarmist without cause.
+/// The ring's colour for a score, as a state: fine, worth a look, or a problem. The same colour at
+/// both ends, because the ring reports a state and is not decoration.
 pub fn score_stops(score: f32) -> (Hsla, Hsla) {
-    if score >= 80.0 {
-        (theme::hex(0x5EEAD4), theme::hex(0x34D399))
-    } else if score >= 60.0 {
-        (theme::hex(0xFBBF24), theme::hex(0xA3E635))
-    } else if score >= 40.0 {
-        (theme::hex(0xFB923C), theme::hex(0xFBBF24))
+    // The same bands as the labels in hm_system::health: Buena and up, Regular, Atención.
+    let color = if score >= 75.0 {
+        theme::green()
+    } else if score >= 50.0 {
+        theme::amber()
     } else {
-        (theme::hex(0xFB7185), theme::hex(0xFB923C))
-    }
+        theme::rose()
+    };
+    (color, color)
 }
 
 /// The animated health ring with the score and its label in the middle.
@@ -146,16 +147,6 @@ pub fn health_ring(
         .relative()
         .flex_none()
         .size(px(diameter))
-        .child(
-            // A halo behind the ring, tinted by the score.
-            div()
-                .absolute()
-                .top(px(diameter * 0.2))
-                .left(px(diameter * 0.2))
-                .size(px(diameter * 0.6))
-                .rounded_full()
-                .shadow(theme::glow(stops.1, diameter * 0.42, 0.20)),
-        )
         .with_animation(
             ElementId::NamedInteger("health-ring".into(), key),
             Animation::new(Duration::from_millis(1100)).with_easing(ease_out_quint()),
@@ -297,7 +288,7 @@ pub fn stack_bar(segments: &[(f32, Background)], height: f32) -> Div {
 }
 
 /// A determinate bar.
-pub fn progress_bar(fraction: f32, stops: (Hsla, Hsla), height: f32) -> Div {
+pub fn progress_bar(fraction: f32, color: Hsla, height: f32) -> Div {
     let fraction = fraction.clamp(0.0, 1.0);
     let corner = px(height / 2.0);
     div()
@@ -312,13 +303,13 @@ pub fn progress_bar(fraction: f32, stops: (Hsla, Hsla), height: f32) -> Div {
                     .w(relative(fraction))
                     .min_w(px(height))
                     .rounded(corner)
-                    .bg(theme::gradient(stops)),
+                    .bg(color),
             )
         })
 }
 
 /// An indeterminate bar, for when there is no honest way to say how far along something is.
-pub fn indeterminate_bar(id: impl Into<ElementId>, stops: (Hsla, Hsla), height: f32) -> Div {
+pub fn indeterminate_bar(id: impl Into<ElementId>, color: Hsla, height: f32) -> Div {
     let corner = px(height / 2.0);
     div()
         .relative()
@@ -334,7 +325,7 @@ pub fn indeterminate_bar(id: impl Into<ElementId>, stops: (Hsla, Hsla), height: 
                 .h_full()
                 .w(relative(0.3))
                 .rounded(corner)
-                .bg(theme::gradient(stops))
+                .bg(color)
                 .with_animation(
                     id,
                     Animation::new(Duration::from_millis(1400))

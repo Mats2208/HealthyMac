@@ -1,5 +1,6 @@
 //! What happens when the user does something: background work and the state it reports back to.
 
+pub mod appearance;
 pub mod clean;
 pub mod live;
 pub mod load;

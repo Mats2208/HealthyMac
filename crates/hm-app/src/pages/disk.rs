@@ -91,7 +91,7 @@ impl Shell {
                     "Has cancelado la medición",
                     "Vuelve a medir cuando quieras, o elige una carpeta concreta para ir más rápido.",
                     Some(
-                        Btn::primary("Medir de nuevo", theme::brand_stops())
+                        Btn::primary("Medir de nuevo")
                             .icon(Icon::Treemap)
                             .build("disk-start", cx.listener(|this, _, _, cx| this.load_disk(cx)))
                             .into_any_element(),
@@ -129,7 +129,7 @@ impl Shell {
                     .child(
                         row()
                             .gap(sp(2.))
-                            .child(spinner("disk-spin", 14.0, theme::teal()))
+                            .child(spinner("disk-spin", 14.0, theme::text_2()))
                             .child(
                                 div()
                                     .fs(font::SUBHEAD)
@@ -137,11 +137,7 @@ impl Shell {
                                     .child("Midiendo tu disco"),
                             ),
                     )
-                    .child(indeterminate_bar(
-                        "disk-progress",
-                        theme::brand_stops(),
-                        6.0,
-                    ))
+                    .child(indeterminate_bar("disk-progress", theme::primary(), 6.0))
                     .child(path_label(path, font::CAPTION, theme::text_2()))
                     .child(div().fs(font::CAPTION).text_color(theme::text_3()).child(
                         if elapsed > 8 {

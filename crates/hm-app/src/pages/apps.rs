@@ -105,7 +105,7 @@ impl Shell {
         } else if self.apps.apps.data.is_none() {
             empty_state(
                 Icon::Grid,
-                theme::area_color(Area::Apps),
+                theme::text_2(),
                 "Pesando tus apps",
                 "Medimos cada app y buscamos lo que tiene repartido por la Biblioteca. Puede tardar un poco.",
                 None,
@@ -114,7 +114,7 @@ impl Shell {
         } else if count == 0 {
             empty_state(
                 Icon::Grid,
-                theme::area_color(Area::Apps),
+                theme::text_2(),
                 "No hemos encontrado apps",
                 "Qué raro. Si tus apps están fuera de /Applications, no las vemos.",
                 None,

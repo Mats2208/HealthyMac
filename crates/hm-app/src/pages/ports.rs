@@ -49,7 +49,7 @@ impl Shell {
         } else if self.ports.ports.data.is_none() {
             empty_state(
                 Icon::Plug,
-                theme::area_color(hm_core::Area::Developer),
+                theme::text_2(),
                 "Mirando los puertos",
                 "Un segundo.",
                 None,
@@ -58,7 +58,7 @@ impl Shell {
         } else if count == 0 {
             empty_state(
                 Icon::Plug,
-                theme::area_color(hm_core::Area::Developer),
+                theme::text_2(),
                 "Nadie está escuchando",
                 "Ninguno de tus procesos tiene un puerto abierto ahora mismo. Cuando arranques un servidor, lo verás aquí.",
                 None,
@@ -187,9 +187,7 @@ impl Shell {
                                         this.child(
                                             clip()
                                                 .fs(font::MICRO)
-                                                .text_color(theme::area_color(
-                                                    hm_core::Area::Developer,
-                                                ))
+                                                .text_color(theme::text_2())
                                                 .child(hint),
                                         )
                                     })

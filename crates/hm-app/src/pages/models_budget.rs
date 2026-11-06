@@ -7,7 +7,7 @@ use gpui::{
 use hm_ai::types::ModelInventory;
 use hm_core::fmt::{human_memory, human_size};
 
-use super::models::{fit_color, runtime_loaded_bytes, LOCAL_AI};
+use super::models::{fit_color, runtime_loaded_bytes};
 use super::plural;
 use crate::state::Shell;
 use crate::theme::{self, font, sp, GUTTER};
@@ -109,7 +109,7 @@ pub(super) fn render_budget_hero(
                             .child(big_number(
                                 human_size(inventory.reclaimable_bytes),
                                 font::DISPLAY,
-                                theme::amber(),
+                                theme::text_1(),
                             ))
                             .child(
                                 div()
@@ -205,8 +205,8 @@ fn render_budget(
                     row()
                         .gap(sp(3.))
                         .child(legend_dot(theme::green(), "Sobra"))
-                        .child(legend_dot(theme::amber(), "Justo"))
-                        .child(legend_dot(theme::orange(), "Excede la GPU"))
+                        .child(legend_dot(theme::yellow(), "Justo"))
+                        .child(legend_dot(theme::amber(), "Excede la GPU"))
                         .child(legend_dot(theme::rose(), "No cabe")),
                 ),
         )
@@ -244,7 +244,7 @@ fn render_budget(
                     window.paint_quad(quad(
                         rect(gpu_x, ram_x - gpu_x),
                         px(2.),
-                        pattern_slash(theme::orange().alpha(0.42), 1.5, 5.0),
+                        pattern_slash(theme::amber().alpha(0.42), 1.5, 5.0),
                         px(0.),
                         theme::hairline(),
                         Default::default(),
@@ -258,7 +258,7 @@ fn render_budget(
                             top_right: px(2.),
                             bottom_right: px(2.),
                         },
-                        theme::gradient(theme::area_stops(LOCAL_AI)),
+                        theme::text_3().alpha(0.5),
                         px(0.),
                         theme::hairline(),
                         Default::default(),

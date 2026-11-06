@@ -60,15 +60,14 @@ impl Render for Shell {
             .on_action(|_: &crate::CloseWindow, window, _| window.remove_window())
             .child(self.render_sidebar(cx))
             .child(
+                // The page sits flush against the sidebar, as in Finder or System Settings, rather
+                // than floating as a card: this is a Mac app, not a web dashboard.
                 div()
                     .relative()
                     .flex_1()
                     .min_w(px(0.))
-                    .my(sp(2.))
-                    .mr(sp(2.))
-                    .rounded(px(radius::XL))
                     .bg(theme::panel_bg())
-                    .border_1()
+                    .border_l_1()
                     .border_color(theme::hairline())
                     .overflow_hidden()
                     .flex()

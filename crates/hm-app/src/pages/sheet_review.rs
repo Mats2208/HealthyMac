@@ -176,7 +176,7 @@ impl Shell {
                                 .child(toggle(
                                     "include-leftovers",
                                     options.include_leftovers,
-                                    theme::lime(),
+                                    theme::green(),
                                     cx.listener(|this, _, _, cx| this.toggle_uninstall_leftovers(cx)),
                                 ))
                                 .child(
@@ -283,7 +283,6 @@ impl Shell {
                                 .child(checkbox(
                                     "review-ack",
                                     if review.acknowledged { GroupState::All } else { GroupState::None },
-                                    theme::rose(),
                                     cx.listener(|this, _, _, cx| this.toggle_acknowledged(cx)),
                                 ))
                                 .child(
@@ -312,18 +311,18 @@ impl Shell {
                                 cx.listener(|this, _, _, cx| this.close_sheet(cx)),
                             ))
                             .child(
-                                Btn::primary(
-                                    if simulated {
+                                {
+                                    let label = if simulated {
                                         "Simular".to_string()
                                     } else {
                                         format!("{} {}", review.confirm_label, summary.total_label())
-                                    },
+                                    };
                                     if needs_ack {
-                                        (theme::hex(0xFDA4AF), theme::rose())
+                                        Btn::destructive(label)
                                     } else {
-                                        theme::brand_stops()
-                                    },
-                                )
+                                        Btn::primary(label)
+                                    }
+                                }
                                 .disabled(!can_confirm)
                                 .build(
                                     "review-confirm",
@@ -356,17 +355,17 @@ fn destination_lines(items: &[Finding], mode: RemovalMode) -> Vec<AnyElement> {
             let (which, color, text): (Icon, Hsla, String) = match kind {
                 Destination::Trash => (
                     Icon::Trash,
-                    theme::amber(),
+                    theme::text_2(),
                     format!("{size} irán a la Papelera. Podrás recuperarlos, pero el espacio no se libera hasta que la vacíes."),
                 ),
                 Destination::Deleted => (
                     Icon::Bolt,
-                    theme::teal(),
+                    theme::amber(),
                     format!("{size} se borran al momento, porque se regeneran solos."),
                 ),
                 Destination::Tool => (
                     Icon::Code,
-                    theme::violet(),
+                    theme::text_2(),
                     format!("{size} los limpia la propia herramienta con su comando. Esa cifra es una estimación."),
                 ),
                 Destination::Clone => (

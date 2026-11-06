@@ -66,12 +66,15 @@ impl Shell {
                 }
             }))
             .child(
-                row().gap(px(7.)).child(icon(which, 15.0, accent)).child(
-                    clip()
-                        .fs(font::CAPTION)
-                        .text_color(theme::text_2())
-                        .child(area.label()),
-                ),
+                row()
+                    .gap(px(7.))
+                    .child(icon(which, 15.0, theme::text_2()))
+                    .child(
+                        clip()
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_2())
+                            .child(area.label()),
+                    ),
             )
             .when(!scanned, |this| {
                 this.child(
@@ -165,7 +168,7 @@ impl Shell {
                             .get(meta.id)
                             .cloned()
                             .unwrap_or(ScannerStatus::Waiting);
-                        scanner_line(meta.id, meta.name, meta.area, status)
+                        scanner_line(meta.id, meta.name, status)
                     })),
             )
     }
@@ -181,23 +184,16 @@ fn tile_blurb(area: Area) -> &'static str {
     }
 }
 
-fn scanner_line(
-    id: &'static str,
-    name: &'static str,
-    area: Area,
-    status: ScannerStatus,
-) -> impl IntoElement {
+fn scanner_line(id: &'static str, name: &'static str, status: ScannerStatus) -> impl IntoElement {
     let status_icon: AnyElement = match &status {
         ScannerStatus::Waiting => dot(theme::surface_4(), 6.0).mx(sp(1.)).into_any_element(),
         ScannerStatus::Running => spinner(
             SharedString::from(format!("spin-{id}")),
             14.0,
-            theme::area_color(area),
+            theme::text_2(),
         )
         .into_any_element(),
-        ScannerStatus::Done { .. } => {
-            icon(Icon::Check, 14.0, theme::area_color(area)).into_any_element()
-        }
+        ScannerStatus::Done { .. } => icon(Icon::Check, 14.0, theme::text_2()).into_any_element(),
         ScannerStatus::Failed(_) => icon(Icon::Alert, 14.0, theme::amber()).into_any_element(),
     };
     let trailing = match &status {

@@ -17,21 +17,6 @@ use crate::state::{HoverTile, Shell};
 use crate::theme::{self, font, radius};
 use crate::ui::f;
 
-/// Hues for the top-level tiles, picked to sit together on the dark panel.
-const HUES: [f32; 8] = [0.48, 0.70, 0.58, 0.08, 0.97, 0.53, 0.40, 0.78];
-
-fn tile_color(hue: f32, depth: usize, rank: usize, is_dir: bool, hovered: bool) -> Hsla {
-    // Parents sit darker, so their children read as lit from inside.
-    let lightness = 0.17 + 0.075 * depth as f32 + 0.012 * (rank % 4) as f32;
-    let saturation = if is_dir { 0.34 } else { 0.2 };
-    gpui::hsla(
-        hue,
-        saturation,
-        (lightness + if hovered { 0.08 } else { 0.0 }).min(0.6),
-        1.0,
-    )
-}
-
 struct Tile {
     rect: Rect,
     /// Child indices from the current folder. Empty for the "other" tile.
@@ -60,7 +45,8 @@ pub(super) fn treemap_canvas(
             let tiles: Rc<RefCell<Vec<Tile>>> = Rc::new(RefCell::new(Vec::new()));
 
             if current.children.is_empty() {
-                let color = tile_color(HUES[0], 0, 0, current.is_dir, false);
+                let color =
+                    theme::treemap_tile(theme::TREEMAP_HUES[0], 0, 0, current.is_dir, false);
                 window.paint_quad(quad(
                     bounds,
                     px(radius::MD),
@@ -104,7 +90,7 @@ pub(super) fn treemap_canvas(
                         continue;
                     }
                     let child = &current.children[index];
-                    let hue = HUES[index % HUES.len()];
+                    let hue = theme::TREEMAP_HUES[index % theme::TREEMAP_HUES.len()];
                     let path = vec![index];
                     let hovered = hover
                         .as_ref()
@@ -117,7 +103,13 @@ pub(super) fn treemap_canvas(
                     paint_tile(
                         window,
                         *rect,
-                        tile_color(hue, 0, index, child.is_dir, hovered && (!nest || exact)),
+                        theme::treemap_tile(
+                            hue,
+                            0,
+                            index,
+                            child.is_dir,
+                            hovered && (!nest || exact),
+                        ),
                         false,
                     );
                     if nest {
@@ -138,12 +130,7 @@ pub(super) fn treemap_canvas(
                                 continue;
                             }
                             if sub == child.children.len() {
-                                paint_tile(
-                                    window,
-                                    *sub_rect,
-                                    gpui::hsla(hue, 0.14, 0.15, 1.0),
-                                    true,
-                                );
+                                paint_tile(window, *sub_rect, theme::treemap_rest(hue), true);
                                 continue;
                             }
                             let grandchild = &child.children[sub];
@@ -152,7 +139,7 @@ pub(super) fn treemap_canvas(
                             paint_tile(
                                 window,
                                 *sub_rect,
-                                tile_color(hue, 1, sub, grandchild.is_dir, sub_hover),
+                                theme::treemap_tile(hue, 1, sub, grandchild.is_dir, sub_hover),
                                 true,
                             );
                             if sub_rect.w > 56.0 && sub_rect.h > 24.0 {

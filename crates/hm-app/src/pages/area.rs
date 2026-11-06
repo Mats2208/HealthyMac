@@ -76,7 +76,7 @@ impl Shell {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
-        let accent = theme::area_color(area);
+        let accent = theme::text_2();
         let view = self.views.entry(area).or_default();
         if view.rows.is_empty() {
             if self.scan.running {
@@ -101,7 +101,7 @@ impl Shell {
                 )
             };
             let action = (!self.scan.finished_once).then(|| {
-                Btn::primary("Escanear", theme::area_stops(area))
+                Btn::primary("Escanear")
                     .size(BtnSize::Lg)
                     .icon(Icon::Scan)
                     .build(
@@ -288,7 +288,6 @@ impl Shell {
         else {
             return div().into_any_element();
         };
-        let accent = theme::area_color(area);
         match row_data {
             FindingRow::Scanner {
                 scanner_id,
@@ -321,7 +320,6 @@ impl Shell {
                         checkbox(
                             ElementId::NamedInteger("scanner-check".into(), row_index as u64),
                             state,
-                            accent,
                             cx.listener(move |this, _, _, cx| {
                                 this.toggle_members(&group_members, cx)
                             }),
@@ -384,7 +382,6 @@ impl Shell {
                         checkbox(
                             ElementId::NamedInteger("group-check".into(), row_index as u64),
                             state,
-                            accent,
                             cx.listener(move |this, _, _, cx| {
                                 this.toggle_members(&group_members, cx)
                             }),
@@ -427,7 +424,6 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let finding = &self.findings[index];
-        let accent = theme::area_color(area);
         let stands_for_scanner = heading == Some(Heading::Scanner);
         let nested = finding.group.is_some() && !stands_for_scanner;
         // A lone item takes its group's name, or keeps its own and says which scanner found it.
@@ -439,7 +435,7 @@ impl Shell {
             let name = self.scanner_name(&finding.scanner_id);
             let (lower_name, lower_title) = (name.to_lowercase(), finding.title.to_lowercase());
             let repeats = lower_name.contains(&lower_title) || lower_title.contains(&lower_name);
-            (!repeats).then(|| format!("{name} ·"))
+            (!repeats).then_some(name)
         } else {
             None
         };
@@ -481,7 +477,6 @@ impl Shell {
                                     } else {
                                         GroupState::None
                                     },
-                                    accent,
                                     cx.listener(move |this, _, _, cx| {
                                         if let Some(finding) = this.findings.get(index) {
                                             this.selection.toggle(finding);

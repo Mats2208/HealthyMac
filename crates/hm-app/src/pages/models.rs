@@ -26,8 +26,8 @@ pub(super) const LOCAL_AI: Area = Area::LocalAi;
 pub fn fit_color(fit: ModelFit) -> Hsla {
     match fit {
         ModelFit::Comfortable => theme::green(),
-        ModelFit::Tight => theme::amber(),
-        ModelFit::CpuOnly => theme::orange(),
+        ModelFit::Tight => theme::yellow(),
+        ModelFit::CpuOnly => theme::amber(),
         ModelFit::TooLarge => theme::rose(),
         ModelFit::Unknown => theme::text_3(),
     }
@@ -98,7 +98,7 @@ impl Shell {
             } else {
                 empty_state(
                     Icon::Cube,
-                    theme::area_color(LOCAL_AI),
+                    theme::text_2(),
                     "Buscando modelos",
                     "Miramos en Ollama, LM Studio, Hugging Face, MLX y compañía. La primera vez puede tardar un poco, porque hay que comparar archivos muy grandes.",
                     None,
@@ -160,7 +160,7 @@ impl Shell {
                 .items_center()
                 .gap(sp(2.))
                 .py(sp(10.))
-                .child(icon(Icon::Cube, 24.0, theme::area_color(LOCAL_AI)))
+                .child(icon(Icon::Cube, 24.0, theme::text_2()))
                 .child(
                     div()
                         .fs(font::SUBHEAD)
@@ -581,7 +581,7 @@ fn render_duplicates_header(
                     human_size(inventory.reclaimable_bytes)
                 )))
                 .child(
-                    Btn::primary("Deduplicar todo", theme::area_stops(LOCAL_AI))
+                    Btn::primary("Deduplicar todo")
                         .size(BtnSize::Sm)
                         .icon(Icon::Copy)
                         .disabled(!can_dedupe)
