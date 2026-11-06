@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use hm_core::fmt::human_size;
-use hm_core::{Action, Area, Finding, Recovery, RemovalMode, Risk};
+use hm_core::{tf, Action, Area, Finding, Recovery, RemovalMode, Risk};
 
 /// A finding the cleaner can act on. Report-only findings are shown, but can never be selected.
 pub fn is_actionable(finding: &Finding) -> bool {
@@ -149,7 +149,7 @@ impl Summary {
     /// The total to show, saying "al menos" when it is only a floor.
     pub fn total_label(&self) -> String {
         if self.is_lower_bound() {
-            format!("al menos {}", human_size(self.bytes))
+            tf!("al menos {}", "at least {}", human_size(self.bytes))
         } else {
             human_size(self.bytes)
         }

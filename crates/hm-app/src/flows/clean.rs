@@ -9,8 +9,8 @@ use futures::StreamExt;
 use gpui::Context;
 use hm_core::audit::AuditLog;
 use hm_core::{
-    Action, Area, CancelToken, CleanEvent, CleanOptions, CleanOutcome, CleanReport, CleanStatus,
-    Cleaner, Finding, Recovery, Risk,
+    t, tf, Action, Area, CancelToken, CleanEvent, CleanOptions, CleanOutcome, CleanReport,
+    CleanStatus, Cleaner, Finding, Recovery, Risk,
 };
 use hm_dev::types::ListeningPort;
 use hm_system::types::AppInfo;
@@ -104,7 +104,13 @@ impl Shell {
         // What deserves a look goes first, however long the list.
         items.sort_by(|a, b| b.risk.cmp(&a.risk).then(b.size.cmp(&a.size)));
         if items.is_empty() {
-            self.show_toast("No hay nada que limpiar en lo que has elegido.", cx);
+            self.show_toast(
+                t!(
+                    "No hay nada que limpiar en lo que has elegido.",
+                    "There's nothing to clean in what you chose."
+                ),
+                cx,
+            );
             return;
         }
         let summary = Summary::of(&items);
@@ -163,24 +169,32 @@ impl Shell {
             .filter(|finding| self.selection.is_selected(finding))
             .cloned()
             .collect();
-        self.open_review("Revisa antes de limpiar", "Limpiar", items, cx);
+        self.open_review(
+            t!("Revisa antes de limpiar", "Review before cleaning"),
+            t!("Limpiar", "Clean"),
+            items,
+            cx,
+        );
     }
 
     pub fn review_uninstall(&mut self, app: AppInfo, cx: &mut Context<Self>) {
         if app.is_system || app.uninstall_blocked.is_some() {
-            let reason = app
-                .uninstall_blocked
-                .clone()
-                .unwrap_or_else(|| "Las apps del sistema no se pueden desinstalar.".to_string());
+            let reason = app.uninstall_blocked.clone().unwrap_or_else(|| {
+                t!(
+                    "Las apps del sistema no se pueden desinstalar.",
+                    "System apps can't be uninstalled."
+                )
+                .to_string()
+            });
             self.show_toast(reason, cx);
             return;
         }
         let include_leftovers = true;
         let finding = self.uninstall_finding(&app, include_leftovers);
-        let title = format!("Desinstalar {}", app.name);
+        let title = tf!("Desinstalar {}", "Uninstall {}", app.name);
         self.open_review_with(
             title,
-            "Desinstalar",
+            t!("Desinstalar", "Uninstall"),
             vec![finding],
             Some(UninstallOptions {
                 app,
@@ -258,7 +272,9 @@ impl Shell {
                 freed_bytes: 0,
                 trashed_bytes: 0,
                 freed_is_estimate: false,
-                message: Some("Queda fuera de la home de prueba".to_string()),
+                message: Some(
+                    t!("Queda fuera de la home de prueba", "Outside the test home").to_string(),
+                ),
                 errors: Vec::new(),
             })
             .collect();
@@ -451,27 +467,35 @@ impl Shell {
                     "ui.empty_trash",
                     Area::System,
                     "trash",
-                    "Vaciar la Papelera",
+                    t!("Vaciar la Papelera", "Empty Trash"),
                 )
-                .subtitle("Todo lo que hay ahora en la Papelera")
-                .explanation(
+                .subtitle(t!(
+                    "Todo lo que hay ahora en la Papelera",
+                    "Everything in the Trash right now"
+                ))
+                .explanation(t!(
                     "Borra para siempre todo lo que hay en la Papelera, también lo que no pusiste \
                          ahí con HealthyMac. Es el paso que libera el espacio de verdad.",
-                )
+                    "Permanently deletes everything in the Trash, including what you didn't put \
+                         there with HealthyMac. This is the step that actually frees the space."
+                ))
                 .size(bytes)
                 .risk(Risk::Review)
                 .recovery(Recovery::None)
                 .action(Action::EmptyTrash);
                 shell.open_review(
-                    "Vaciar la Papelera",
-                    "Vaciar la Papelera",
+                    t!("Vaciar la Papelera", "Empty Trash"),
+                    t!("Vaciar la Papelera", "Empty Trash"),
                     vec![finding],
                     cx,
                 );
                 if let Some(Sheet::Review(review)) = &mut shell.sheet {
                     review.acknowledgement = Some(
-                        "Entiendo que vaciar la Papelera es definitivo: lo que hay dentro no se puede recuperar."
-                            .to_string(),
+                        t!(
+                            "Entiendo que vaciar la Papelera es definitivo: lo que hay dentro no se puede recuperar.",
+                            "I understand that emptying the Trash is permanent: what's inside can't be recovered."
+                        )
+                        .to_string(),
                     );
                 }
             },
@@ -507,7 +531,10 @@ impl Shell {
         if !self.mode.may_signal_processes() {
             self.sheet = None;
             self.show_toast(
-                format!("Simulación: no se ha enviado ninguna señal a {name}."),
+                tf!(
+                    "Simulación: no se ha enviado ninguna señal a {name}.",
+                    "Simulation: no signal was sent to {name}."
+                ),
                 cx,
             );
             return;
@@ -519,7 +546,13 @@ impl Shell {
             move |shell, result, cx| match result {
                 Ok(()) => {
                     shell.sheet = None;
-                    shell.show_toast(format!("{name} ha recibido la señal."), cx);
+                    shell.show_toast(
+                        tf!(
+                            "{name} ha recibido la señal.",
+                            "{name} received the signal."
+                        ),
+                        cx,
+                    );
                     shell.load_ports(cx);
                 }
                 Err(error) => {
@@ -561,14 +594,15 @@ fn simulate_clean(
             message: None,
             errors: Vec::new(),
         };
-        if finding.title == "Desinstalar Final Cut Pro" {
+        // By id, not title: the title is in whichever language the demo was built in.
+        if finding.id == "apps.uninstall:Final Cut Pro" {
             outcome.status = CleanStatus::Failed;
             outcome
                 .errors
                 .push("/Applications/Final Cut Pro.app: Operation not permitted".to_string());
         } else if finding.blocked_by.iter().any(|process| process == "Xcode") {
             outcome.status = CleanStatus::Skipped;
-            outcome.message = Some("Xcode está abierto".to_string());
+            outcome.message = Some(t!("Xcode está abierto", "Xcode is open").to_string());
         } else {
             match finding.action {
                 Action::Command { .. } | Action::CloneDedupe { .. } | Action::EmptyTrash => {

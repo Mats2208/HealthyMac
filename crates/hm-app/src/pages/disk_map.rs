@@ -10,6 +10,7 @@ use gpui::{
     TextRun, WeakEntity, Window,
 };
 use hm_core::fmt::human_size;
+use hm_core::t;
 use hm_system::types::DirNode;
 
 use crate::logic::treemap::{squarify, Rect};
@@ -60,7 +61,10 @@ pub(super) fn treemap_canvas(
                     cx,
                     area,
                     if current.is_dir {
-                        "Esta carpeta no tiene nada más que ver por dentro"
+                        t!(
+                            "Esta carpeta no tiene nada más que ver por dentro",
+                            "Nothing more to see inside this folder"
+                        )
                     } else {
                         &current.name
                     },
@@ -83,7 +87,7 @@ pub(super) fn treemap_canvas(
                                 window,
                                 cx,
                                 *rect,
-                                "Otros",
+                                t!("Otros", "Other"),
                                 &human_size(current.other_size),
                             );
                         }

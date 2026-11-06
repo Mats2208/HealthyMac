@@ -10,6 +10,7 @@ pub mod scan;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use gpui::Context;
+use hm_core::t;
 
 use crate::state::Shell;
 
@@ -31,7 +32,13 @@ impl Shell {
                     .downcast_ref::<&str>()
                     .map(|text| text.to_string())
                     .or_else(|| payload.downcast_ref::<String>().cloned())
-                    .unwrap_or_else(|| "fallo interno sin mensaje".to_string())),
+                    .unwrap_or_else(|| {
+                        t!(
+                            "fallo interno sin mensaje",
+                            "internal failure with no message"
+                        )
+                        .to_string()
+                    })),
             };
             let _ = tx.send(result);
         });

@@ -6,6 +6,7 @@ use gpui::{
 };
 use hm_ai::types::ModelInventory;
 use hm_core::fmt::{human_memory, human_size};
+use hm_core::{t, tf};
 
 use super::models::{fit_color, runtime_loaded_bytes};
 use super::plural;
@@ -46,17 +47,19 @@ pub(super) fn render_budget_hero(
                 .collect();
             this.child(notice(
                 NoticeKind::Info,
-                format!(
+                tf!(
                     "{} sin mirar: pedirían permiso a mitad de escaneo",
+                    "{} not checked, to avoid a permission prompt mid-scan",
                     plural(
                         folders.len(),
-                        "carpeta de modelos se ha quedado",
-                        "carpetas de modelos se han quedado"
+                        t!("carpeta de modelos se ha quedado", "model folder"),
+                        t!("carpetas de modelos se han quedado", "model folders")
                     )
                 ),
                 Some(
-                    format!(
+                    tf!(
                         "{}. Con Acceso total al disco entran en la cuenta.",
+                        "{}. With Full Disk Access they are counted too.",
                         folders.join(", ")
                     )
                     .into(),
@@ -67,7 +70,10 @@ pub(super) fn render_budget_hero(
         .when_some(stale_error, |this, error| {
             this.child(notice(
                 NoticeKind::Warning,
-                "No hemos podido actualizar: esto es lo último que sabemos",
+                t!(
+                    "No hemos podido actualizar: esto es lo último que sabemos",
+                    "Couldn't refresh: showing the last known data"
+                ),
                 Some(error.into()),
                 None,
             ))
@@ -79,9 +85,9 @@ pub(super) fn render_budget_hero(
                 .child(
                     col()
                         .gap(sp(0.5))
-                        .child(eyebrow("En tu disco"))
+                        .child(eyebrow(t!("En tu disco", "On your disk")))
                         .child(if inventory.models.is_empty() {
-                            big_number("Nada", font::DISPLAY, theme::text_3())
+                            big_number(t!("Nada", "None"), font::DISPLAY, theme::text_3())
                         } else {
                             big_number(
                                 human_size(inventory.total_bytes),
@@ -91,11 +97,16 @@ pub(super) fn render_budget_hero(
                         })
                         .child(div().fs(font::CAPTION).text_color(theme::text_2()).child(
                             if inventory.models.is_empty() {
-                                "Ningún modelo todavía".to_string()
+                                t!("Ningún modelo todavía", "No models yet").to_string()
                             } else {
-                                format!(
+                                tf!(
                                     "{} en {}",
-                                    plural(inventory.models.len(), "modelo", "modelos"),
+                                    "{} in {}",
+                                    plural(
+                                        inventory.models.len(),
+                                        t!("modelo", "model"),
+                                        t!("modelos", "models")
+                                    ),
                                     plural(runtime_count, "runtime", "runtimes")
                                 )
                             },
@@ -105,7 +116,7 @@ pub(super) fn render_budget_hero(
                     this.child(
                         col()
                             .gap(sp(0.5))
-                            .child(eyebrow("Repetidos"))
+                            .child(eyebrow(t!("Repetidos", "Duplicates")))
                             .child(big_number(
                                 human_size(inventory.reclaimable_bytes),
                                 font::DISPLAY,
@@ -115,19 +126,22 @@ pub(super) fn render_budget_hero(
                                 div()
                                     .fs(font::CAPTION)
                                     .text_color(theme::text_2())
-                                    .child("se recuperan sin perder nada"),
+                                    .child(t!(
+                                        "se recuperan sin perder nada",
+                                        "can be freed without losing anything"
+                                    )),
                             ),
                     )
                 })
                 .child(
                     col()
                         .gap(sp(0.5))
-                        .child(eyebrow("Ahora en memoria"))
+                        .child(eyebrow(t!("Ahora en memoria", "In memory now")))
                         .child(big_number(
                             if loaded_bytes > 0 {
                                 human_memory(loaded_bytes)
                             } else {
-                                "Nada".to_string()
+                                t!("Nada", "None").to_string()
                             },
                             font::DISPLAY,
                             if loaded_bytes > 0 {
@@ -138,9 +152,13 @@ pub(super) fn render_budget_hero(
                         ))
                         .child(div().fs(font::CAPTION).text_color(theme::text_2()).child(
                             if running > 0 {
-                                plural(running, "runtime activo", "runtimes activos")
+                                plural(
+                                    running,
+                                    t!("runtime activo", "runtime running"),
+                                    t!("runtimes activos", "runtimes running"),
+                                )
                             } else {
-                                "Ningún runtime activo".to_string()
+                                t!("Ningún runtime activo", "No runtimes running").to_string()
                             },
                         )),
                 ),
@@ -200,21 +218,24 @@ fn render_budget(
             row()
                 .justify_between()
                 .mb(sp(2.5))
-                .child(section_title("Presupuesto de memoria"))
+                .child(section_title(t!("Presupuesto de memoria", "Memory budget")))
                 .child(
                     row()
                         .gap(sp(3.))
-                        .child(legend_dot(theme::green(), "Sobra"))
-                        .child(legend_dot(theme::yellow(), "Justo"))
-                        .child(legend_dot(theme::amber(), "Excede la GPU"))
-                        .child(legend_dot(theme::rose(), "No cabe")),
+                        .child(legend_dot(theme::green(), t!("Sobra", "Fits easily")))
+                        .child(legend_dot(theme::yellow(), t!("Justo", "Tight fit")))
+                        .child(legend_dot(theme::amber(), t!("Excede la GPU", "Exceeds GPU")))
+                        .child(legend_dot(theme::rose(), t!("No cabe", "Won't fit"))),
                 ),
         )
         .child(if !known {
             div()
                 .fs(font::CAPTION)
                 .text_color(theme::text_2())
-                .child("No hemos podido leer cuánta memoria tiene este Mac, así que no podemos comparar.")
+                .child(t!(
+                    "No hemos podido leer cuánta memoria tiene este Mac, así que no podemos comparar.",
+                    "Couldn't read how much memory this Mac has, so there is nothing to compare against."
+                ))
                 .into_any_element()
         } else {
             canvas(
@@ -345,7 +366,7 @@ fn render_budget(
                     };
                     let label_y = origin.y + px(bar_y + BAR_HEIGHT + 8.0);
                     for (x, text) in [
-                        (gpu_x, format!("Límite de GPU · {}", human_memory(budget.gpu_limit))),
+                        (gpu_x, tf!("Límite de GPU · {}", "GPU limit · {}", human_memory(budget.gpu_limit))),
                         (ram_x, format!("RAM · {}", human_memory(budget.total_ram))),
                     ] {
                         window.paint_quad(gpui::fill(
