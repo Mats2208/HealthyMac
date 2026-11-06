@@ -93,6 +93,16 @@ pub fn paint_ring(
     if fraction <= 0.0 {
         return;
     }
+    // A full score is a closed ring: no caps, nothing to meet.
+    let full = fraction >= 0.999;
+    // Near the top the two round caps would touch and pinch the ring where it starts. Keep a clean
+    // gap of a cap's width plus a little air between them instead.
+    let circumference = TAU * radius.max(1.0);
+    let fraction = if full {
+        1.0
+    } else {
+        fraction.min(1.0 - (thickness + 4.0) / circumference)
+    };
     let segments = ((fraction * 96.0).ceil() as usize).max(1);
     let step = fraction / segments as f32;
     for index in 0..segments {
@@ -101,6 +111,9 @@ pub fn paint_ring(
         let to = (from + step + 0.002).min(fraction);
         let color = theme::mix(stops.0, stops.1, index as f32 / segments.max(2) as f32);
         paint_arc(window, center, radius, thickness, from, to, color);
+    }
+    if full {
+        return;
     }
     // Round caps.
     let cap = |turns: f32| {
