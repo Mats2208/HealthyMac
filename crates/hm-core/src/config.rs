@@ -89,7 +89,30 @@ const DEFAULT_PROJECT_ROOT_NAMES: &[&str] = &[
     "GitHub",
     "github",
     "Sites",
+    // Spanish names. APFS usually ignores case, but a case-sensitive volume would not.
+    "Proyectos",
+    "proyectos",
+    "PROYECTOS",
 ];
+
+/// The usual project folders under `home` that exist, each once even where names differ only in
+/// case. Also where other scanners look for tools people keep next to their projects, such as a
+/// ComfyUI checkout.
+pub fn common_project_dirs(home: &Path) -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    for name in DEFAULT_PROJECT_ROOT_NAMES {
+        let candidate = home.join(name);
+        if !candidate.is_dir() {
+            continue;
+        }
+        // APFS is usually case-insensitive, so "Code" and "code" can be the same folder.
+        let canonical = candidate.canonicalize().unwrap_or(candidate);
+        if !dirs.contains(&canonical) {
+            dirs.push(canonical);
+        }
+    }
+    dirs
+}
 
 impl Config {
     pub fn default_path(home: &Path) -> PathBuf {
@@ -122,19 +145,7 @@ impl Config {
         if !self.project_roots.is_empty() {
             return self.project_roots.clone();
         }
-        let mut roots: Vec<PathBuf> = Vec::new();
-        for name in DEFAULT_PROJECT_ROOT_NAMES {
-            let candidate = home.join(name);
-            if !candidate.is_dir() {
-                continue;
-            }
-            // APFS is usually case-insensitive, so "Code" and "code" can be the same folder.
-            let canonical = candidate.canonicalize().unwrap_or(candidate);
-            if !roots.contains(&canonical) {
-                roots.push(canonical);
-            }
-        }
-        roots
+        common_project_dirs(home)
     }
 }
 
@@ -169,5 +180,17 @@ mod tests {
         let roots = Config::default().effective_project_roots(dir.path());
         assert_eq!(roots.len(), 1);
         assert!(roots[0].ends_with("Coding"));
+    }
+
+    #[test]
+    fn default_roots_include_spanish_names() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir(dir.path().join("Proyectos")).unwrap();
+        let roots = Config::default().effective_project_roots(dir.path());
+        assert_eq!(roots.len(), 1, "one folder, however its case is spelled");
+        assert!(roots[0]
+            .to_string_lossy()
+            .to_lowercase()
+            .ends_with("proyectos"));
     }
 }
