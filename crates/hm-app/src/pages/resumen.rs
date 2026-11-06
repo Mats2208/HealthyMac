@@ -5,7 +5,7 @@ use gpui::{
     Window,
 };
 use hm_core::fmt::human_size;
-use hm_core::Area;
+use hm_core::{t, tf, Area};
 use hm_system::types::{DiskStats, Severity, SystemSnapshot};
 
 use super::resumen_tiles::AREAS;
@@ -58,7 +58,7 @@ impl Shell {
                         self.live.ring_from,
                         self.live.ring_to,
                         if provisional {
-                            "Provisional".into()
+                            t!("Provisional", "Provisional").into()
                         } else {
                             report.label.clone().into()
                         },
@@ -79,8 +79,12 @@ impl Shell {
                 ),
                 None => (
                     ring_placeholder(diameter),
-                    "Tomándole el pulso a tu Mac".into(),
-                    "Un momento, estamos leyendo cómo va todo.".into(),
+                    t!("Tomándole el pulso a tu Mac", "Checking on your Mac").into(),
+                    t!(
+                        "Un momento, estamos leyendo cómo va todo.",
+                        "One moment while we see how everything is doing."
+                    )
+                    .into(),
                 ),
             };
 
@@ -177,9 +181,9 @@ impl Shell {
             (
                 col()
                     .gap(sp(3.))
-                    .child(eyebrow("Escaneando"))
+                    .child(eyebrow(t!("Escaneando", "Scanning")))
                     .child(big_number(
-                        format!("{done} de {total}"),
+                        tf!("{done} de {total}", "{done} of {total}"),
                         font::DISPLAY - 8.0,
                         theme::text_1(),
                     ))
@@ -192,13 +196,16 @@ impl Shell {
                         div()
                             .fs(font::CAPTION)
                             .text_color(theme::text_2())
-                            .child("Solo mira, no toca nada."),
+                            .child(t!(
+                                "Solo mira, no toca nada.",
+                                "It only looks. Nothing is touched."
+                            )),
                     )
                     .into_any_element(),
                 Btn::secondary(if self.scan.cancelling {
-                    "Cancelando…"
+                    t!("Cancelando…", "Canceling…")
                 } else {
-                    "Cancelar"
+                    t!("Cancelar", "Cancel")
                 })
                 .icon(Icon::Stop)
                 .disabled(self.scan.cancelling)
@@ -215,7 +222,7 @@ impl Shell {
             (
                 col()
                     .gap(sp(1.))
-                    .child(eyebrow("Puedes recuperar"))
+                    .child(eyebrow(t!("Puedes recuperar", "You can free up")))
                     .child(big_number(
                         human_size(certain),
                         font::DISPLAY,
@@ -238,8 +245,9 @@ impl Shell {
                                         .fs(font::CAPTION)
                                         .tabular()
                                         .text_color(theme::text_2())
-                                        .child(format!(
+                                        .child(tf!(
                                             "{} elegidos para limpiar",
+                                            "{} selected to clean",
                                             human_size(chosen.bytes)
                                         )),
                                 ),
@@ -253,7 +261,7 @@ impl Shell {
                             .child(found_sentence(&self.findings, to_review)),
                     )
                     .into_any_element(),
-                Btn::secondary("Escanear de nuevo")
+                Btn::secondary(t!("Escanear de nuevo", "Scan again"))
                     .icon(Icon::Refresh)
                     .build(
                         "scan-again",
@@ -268,16 +276,19 @@ impl Shell {
                         div()
                             .fs(font::SUBHEAD)
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("¿Cuánto puedes recuperar?"),
+                            .child(t!("¿Cuánto puedes recuperar?", "How much can you free up?")),
                     )
                     .child(
                         div()
                             .fs(font::CAPTION)
                             .text_color(theme::text_2())
-                            .child("Escanear tarda un momento y no cambia nada en tu Mac."),
+                            .child(t!(
+                                "Escanear tarda un momento y no cambia nada en tu Mac.",
+                                "A scan takes a moment and changes nothing on your Mac."
+                            )),
                     )
                     .into_any_element(),
-                Btn::primary("Escanear")
+                Btn::primary(t!("Escanear", "Scan"))
                     .size(BtnSize::Lg)
                     .icon(Icon::Scan)
                     .build(
@@ -310,7 +321,10 @@ impl Shell {
         let Some(disk) = disk else {
             return col()
                 .gap(sp(2.5))
-                .child(section_heading("Disco", "Leyendo el disco…".to_string()))
+                .child(section_heading(
+                    t!("Disco", "Disk"),
+                    t!("Leyendo el disco…", "Reading the disk…").to_string(),
+                ))
                 .child(indeterminate_bar("disk-loading", theme::surface_4(), 12.0));
         };
         let total = disk.total.max(1);
@@ -336,7 +350,11 @@ impl Shell {
         segments.push((other as f32 / total as f32, theme::surface_4().into()));
         legend.push(legend_item(
             theme::surface_4(),
-            if accounted > 0 { "Lo demás" } else { "En uso" },
+            if accounted > 0 {
+                t!("Lo demás", "Everything else")
+            } else {
+                t!("En uso", "In use")
+            },
             human_size(other),
         ));
         segments.push((
@@ -345,16 +363,17 @@ impl Shell {
         ));
         legend.push(legend_item(
             theme::surface_2(),
-            "Libre",
+            t!("Libre", "Free"),
             human_size(disk.available),
         ));
 
         col()
             .gap(sp(2.5))
             .child(section_heading(
-                "Disco",
-                format!(
+                t!("Disco", "Disk"),
+                tf!(
                     "{} libres de {}",
+                    "{} free of {}",
                     human_size(disk.available),
                     human_size(disk.total)
                 ),
@@ -378,7 +397,10 @@ impl Shell {
         if !self.scan.finished_once {
             return col()
                 .gap(sp(3.))
-                .child(section_title_row("Lo que vamos a mirar"))
+                .child(section_title_row(t!(
+                    "Lo que vamos a mirar",
+                    "What we'll look at"
+                )))
                 .child(
                     row()
                         .w_full()
@@ -386,7 +408,11 @@ impl Shell {
                         .items_start()
                         .children(AREAS.map(|area| self.area_tile(area, cx))),
                 )
-                .child(div().mt(sp(4.)).child(section_title_row("Cómo funciona")))
+                .child(
+                    div()
+                        .mt(sp(4.))
+                        .child(section_title_row(t!("Cómo funciona", "How it works"))),
+                )
                 .child(how_it_works())
                 .into_any_element();
         }
@@ -396,8 +422,14 @@ impl Shell {
             .when(self.scan.was_cancelled, |this| {
                 this.child(notice(
                     NoticeKind::Info,
-                    "Has cancelado el escaneo",
-                    Some("Esto es lo que dio tiempo a encontrar. Puede faltar algo.".into()),
+                    t!("Has cancelado el escaneo", "You canceled the scan"),
+                    Some(
+                        t!(
+                            "Esto es lo que dio tiempo a encontrar. Puede faltar algo.",
+                            "This is what it found before you stopped it. Some things may be missing."
+                        )
+                        .into(),
+                    ),
                     None,
                 ))
             })
@@ -408,15 +440,27 @@ impl Shell {
                     .collect();
                 this.child(notice(
                     NoticeKind::Warning,
-                    format!(
+                    tf!(
                         "{} no se pudo revisar",
-                        plural(failures.len(), "parte", "partes")
+                        "{} couldn't be checked",
+                        plural(
+                            failures.len(),
+                            t!("parte", "part"),
+                            t!("partes", "parts")
+                        )
                     ),
-                    Some(format!("{}. El resto del escaneo es correcto.", names.join(", ")).into()),
+                    Some(
+                        tf!(
+                            "{}. El resto del escaneo es correcto.",
+                            "{}. The rest of the scan is fine.",
+                            names.join(", ")
+                        )
+                        .into(),
+                    ),
                     None,
                 ))
             })
-            .child(section_title_row("Por área"))
+            .child(section_title_row(t!("Por área", "By area")))
             .child(
                 row()
                     .w_full()
@@ -433,7 +477,7 @@ impl Shell {
         summary: Summary,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let label = format!("Limpiar {}", summary.total_label());
+        let label = tf!("Limpiar {}", "Clean {}", summary.total_label());
         let at_least = summary.is_lower_bound();
         action_bar(
             row()
@@ -443,7 +487,7 @@ impl Shell {
                         div()
                             .fs(font::CAPTION)
                             .text_color(theme::text_2())
-                            .child("Al menos"),
+                            .child(t!("Al menos", "At least")),
                     )
                 })
                 .child(big_number(
@@ -456,9 +500,14 @@ impl Shell {
                         .ml(sp(1.))
                         .fs(font::CAPTION)
                         .text_color(theme::text_2())
-                        .child(format!(
+                        .child(tf!(
                             "en {}",
-                            plural(summary.count, "seleccionado", "seleccionados")
+                            "in {}",
+                            plural(
+                                summary.count,
+                                t!("seleccionado", "selected"),
+                                t!("seleccionados", "selected")
+                            )
                         )),
                 ),
             Btn::primary(label).icon(Icon::Sparkle).build(
@@ -511,18 +560,27 @@ fn how_it_works() -> impl IntoElement {
         .items_start()
         .child(step(
             Icon::Scan,
-            "Escanea",
-            "Solo mira: no mueve ni borra nada.",
+            t!("Escanea", "Scan"),
+            t!(
+                "Solo mira: no mueve ni borra nada.",
+                "It only looks: nothing is moved or deleted."
+            ),
         ))
         .child(step(
             Icon::Shield,
-            "Revisa",
-            "Lo que no se regenera solo nunca viene marcado de antemano.",
+            t!("Revisa", "Review"),
+            t!(
+                "Lo que no se regenera solo nunca viene marcado de antemano.",
+                "Anything that doesn't come back on its own is never preselected."
+            ),
         ))
         .child(step(
             Icon::Trash,
-            "Limpia",
-            "Por defecto va a la Papelera, así que puedes recuperarlo.",
+            t!("Limpia", "Clean"),
+            t!(
+                "Por defecto va a la Papelera, así que puedes recuperarlo.",
+                "By default it goes to the Trash, so you can get it back."
+            ),
         ))
 }
 
@@ -584,10 +642,13 @@ fn ring_placeholder(diameter: f32) -> AnyElement {
 
 fn headline_for(score: u8) -> String {
     match score {
-        85..=100 => "Tu Mac está en plena forma",
-        65..=84 => "Tu Mac va bien",
-        40..=64 => "A tu Mac le vendría bien un repaso",
-        _ => "Tu Mac necesita atención",
+        85..=100 => t!("Tu Mac está en plena forma", "Your Mac is in great shape"),
+        65..=84 => t!("Tu Mac va bien", "Your Mac is doing well"),
+        40..=64 => t!(
+            "A tu Mac le vendría bien un repaso",
+            "Your Mac could use a tune-up"
+        ),
+        _ => t!("Tu Mac necesita atención", "Your Mac needs attention"),
     }
     .to_string()
 }
@@ -595,31 +656,62 @@ fn headline_for(score: u8) -> String {
 fn sub_for(score: u8, factors: usize, provisional: bool) -> String {
     if provisional {
         return if factors == 0 {
-            "Puntuación provisional hasta que escanees. De momento, nada te debe preocupar."
+            t!(
+                "Puntuación provisional hasta que escanees. De momento, nada te debe preocupar.",
+                "Provisional score until you scan. So far, nothing to worry about."
+            )
         } else {
-            "Puntuación provisional hasta que escanees. De momento, esto es lo que más pesa:"
+            t!(
+                "Puntuación provisional hasta que escanees. De momento, esto es lo que más pesa:",
+                "Provisional score until you scan. So far, this is what matters most:"
+            )
         }
         .to_string();
     }
     match (score, factors) {
-        (_, 0) => "No hay nada que te deba preocupar ahora mismo.".to_string(),
-        (85..=100, _) => "Solo unos detalles, por si quieres afinar:".to_string(),
-        (65..=84, _) => "Hay algo de margen. Esto es lo que más pesa:".to_string(),
-        _ => "Esto es lo que más está pesando:".to_string(),
+        (_, 0) => t!(
+            "No hay nada que te deba preocupar ahora mismo.",
+            "Nothing to worry about right now."
+        )
+        .to_string(),
+        (85..=100, _) => t!(
+            "Solo unos detalles, por si quieres afinar:",
+            "Just a few details, if you want to fine-tune:"
+        )
+        .to_string(),
+        (65..=84, _) => t!(
+            "Hay algo de margen. Esto es lo que más pesa:",
+            "There is some room to improve. This is what matters most:"
+        )
+        .to_string(),
+        _ => t!(
+            "Esto es lo que más está pesando:",
+            "This is what is weighing on it most:"
+        )
+        .to_string(),
     }
 }
 
 fn found_sentence(findings: &[hm_core::Finding], to_review: u64) -> String {
     let actionable = findings.iter().filter(|f| is_actionable(f)).count();
     if actionable == 0 {
-        "No hemos encontrado nada que limpiar.".to_string()
+        t!(
+            "No hemos encontrado nada que limpiar.",
+            "We found nothing to clean."
+        )
+        .to_string()
     } else if to_review > 0 {
-        format!(
+        tf!(
             "Y otros {} si los revisas: pueden ser cosas tuyas.",
+            "Plus {} more if you review them: they may be yours.",
             human_size(to_review)
         )
     } else {
-        format!("en {}", plural(actionable, "hallazgo", "hallazgos"))
+        tf!(
+            "en {}",
+            "in {}",
+            plural(actionable, t!("hallazgo", "item"), t!("hallazgos", "items"))
+        )
     }
 }
 

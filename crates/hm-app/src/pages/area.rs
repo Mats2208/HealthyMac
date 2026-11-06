@@ -4,7 +4,7 @@ use gpui::{
     div, list, prelude::*, px, AnyElement, Context, ElementId, FontWeight, SharedString, Window,
 };
 use hm_core::fmt::{human_age, human_size};
-use hm_core::{Area, Finding};
+use hm_core::{t, tf, Area, Finding};
 
 use super::{content_width, plural, FULL_DISK_ACCESS_URL};
 use crate::assets::Icon;
@@ -18,11 +18,26 @@ use crate::ui::{clip, clip_middle, col, icon, row, TextExt};
 
 pub fn area_blurb(area: Area) -> &'static str {
     match area {
-        Area::System => "Cachés, registros y restos que macOS y tus apps van dejando atrás.",
-        Area::Developer => "Lo que tus herramientas acumulan: casi todo se regenera al compilar.",
-        Area::LocalAi => "Cachés de modelos, duplicados y restos de experimentos.",
-        Area::Apps => "Restos de apps que ya no están en tu Mac.",
-        Area::Files => "Archivos grandes y descargas viejas. Aquí mandas tú: mira antes de borrar.",
+        Area::System => t!(
+            "Cachés, registros y restos que macOS y tus apps van dejando atrás.",
+            "Caches, logs and leftovers that macOS and your apps leave behind."
+        ),
+        Area::Developer => t!(
+            "Lo que tus herramientas acumulan: casi todo se regenera al compilar.",
+            "What your tools pile up. Nearly all of it is rebuilt when you compile."
+        ),
+        Area::LocalAi => t!(
+            "Cachés de modelos, duplicados y restos de experimentos.",
+            "Model caches, duplicates and leftovers from experiments."
+        ),
+        Area::Apps => t!(
+            "Restos de apps que ya no están en tu Mac.",
+            "Leftovers from apps that are no longer on your Mac."
+        ),
+        Area::Files => t!(
+            "Archivos grandes y descargas viejas. Aquí mandas tú: mira antes de borrar.",
+            "Large files and old downloads. You decide here: look before you delete."
+        ),
     }
 }
 
@@ -45,9 +60,9 @@ impl Shell {
     pub fn rescan_button(&mut self, cx: &mut Context<Self>) -> AnyElement {
         if self.scan.running {
             Btn::secondary(if self.scan.cancelling {
-                "Cancelando…"
+                t!("Cancelando…", "Canceling…")
             } else {
-                "Cancelar escaneo"
+                t!("Cancelar escaneo", "Cancel scan")
             })
             .icon(Icon::Stop)
             .disabled(self.scan.cancelling)
@@ -55,9 +70,9 @@ impl Shell {
             .into_any_element()
         } else {
             Btn::secondary(if self.scan.finished_once {
-                "Escanear de nuevo"
+                t!("Escanear de nuevo", "Scan again")
             } else {
-                "Escanear"
+                t!("Escanear", "Scan")
             })
             .icon(if self.scan.finished_once {
                 Icon::Refresh
@@ -91,17 +106,23 @@ impl Shell {
             }
             let (title, message) = if self.scan.finished_once {
                 (
-                    "Por aquí todo limpio",
-                    "El último escaneo no ha encontrado nada en esta sección. Buenas noticias.",
+                    t!("Por aquí todo limpio", "All clean here"),
+                    t!(
+                        "El último escaneo no ha encontrado nada en esta sección. Buenas noticias.",
+                        "The last scan found nothing in this section. Good news."
+                    ),
                 )
             } else {
                 (
-                    "Todavía no hemos mirado",
-                    "Escanea y te contaremos qué hay, cuánto ocupa y qué pasa si lo quitas. No se toca nada hasta que tú lo digas.",
+                    t!("Todavía no hemos mirado", "We haven't looked yet"),
+                    t!(
+                        "Escanea y te contaremos qué hay, cuánto ocupa y qué pasa si lo quitas. No se toca nada hasta que tú lo digas.",
+                        "Scan and we'll tell you what's here, how much space it takes and what happens if you remove it. Nothing is touched until you say so."
+                    ),
                 )
             };
             let action = (!self.scan.finished_once).then(|| {
-                Btn::primary("Escanear")
+                Btn::primary(t!("Escanear", "Scan"))
                     .size(BtnSize::Lg)
                     .icon(Icon::Scan)
                     .build(
@@ -158,23 +179,28 @@ impl Shell {
                             clip()
                                 .fs(font::CAPTION)
                                 .text_color(theme::text_2())
-                                .child(format!(
+                                .child(tf!(
                                     "{}se pueden recuperar, en {}",
+                                    "{}can be freed up across {}",
                                     if available.is_lower_bound() {
-                                        "como mínimo "
+                                        t!("como mínimo ", "or more ")
                                     } else {
                                         ""
                                     },
-                                    plural(actionable, "hallazgo", "hallazgos")
+                                    plural(
+                                        actionable,
+                                        t!("hallazgo", "item"),
+                                        t!("hallazgos", "items")
+                                    )
                                 )),
                         ),
                     )
                     .child(
                         div().pb(sp(1.)).child(
                             Btn::ghost(if state == GroupState::All {
-                                "Quitar todo"
+                                t!("Quitar todo", "Deselect all")
                             } else {
-                                "Elegir todo"
+                                t!("Elegir todo", "Select all")
                             })
                             .size(BtnSize::Sm)
                             .disabled(state == GroupState::Unavailable)
@@ -231,13 +257,14 @@ impl Shell {
                     .map(|f| self.scanner_name(&f.scanner_id))
                     .collect();
                 names.dedup();
-                format!(
+                tf!(
                     "Sin ese permiso, parte de {} se queda fuera del escaneo. Se concede en Ajustes del Sistema y se puede retirar cuando quieras.",
+                    "Without that permission, part of {} is left out of the scan. You grant it in System Settings and can take it back at any time.",
                     join_names(&names)
                 )
             }
         };
-        let open = Btn::secondary("Abrir Ajustes")
+        let open = Btn::secondary(t!("Abrir Ajustes", "Open Settings"))
             .size(BtnSize::Sm)
             .icon(Icon::External)
             .build(
@@ -247,7 +274,10 @@ impl Shell {
         Some(
             notice(
                 NoticeKind::Info,
-                "Falta el Acceso total al disco",
+                t!(
+                    "Falta el Acceso total al disco",
+                    "Full Disk Access is missing"
+                ),
                 Some(detail.into()),
                 Some(open.into_any_element()),
             )
@@ -449,8 +479,13 @@ impl Shell {
             .last_used
             .map(|when| human_age(when, std::time::SystemTime::now()));
         let subtitle: SharedString = finding.subtitle.clone().unwrap_or_default().into();
-        let shared = (finding.shared_bytes > 0)
-            .then(|| format!("+{} compartidos", human_size(finding.shared_bytes)));
+        let shared = (finding.shared_bytes > 0).then(|| {
+            tf!(
+                "+{} compartidos",
+                "+{} shared",
+                human_size(finding.shared_bytes)
+            )
+        });
         let toggle_id = id.clone();
         let risk_color = theme::risk_color(finding.risk);
 
@@ -586,7 +621,7 @@ impl Shell {
                                             pill(finding.risk.label(), risk_color)
                                                 .into_any_element()
                                         } else {
-                                            tag("Aviso").into_any_element()
+                                            tag(t!("Aviso", "Note")).into_any_element()
                                         },
                                     ))
                                     .child(
@@ -639,12 +674,21 @@ impl Shell {
 /// The expanded part of a row: what it is, what happens if it goes, and how it comes back.
 fn finding_details(finding: &Finding) -> impl IntoElement {
     let explanation = if finding.explanation.is_empty() {
-        "Sin más detalles sobre este elemento.".to_string()
+        t!(
+            "Sin más detalles sobre este elemento.",
+            "No more details about this item."
+        )
+        .to_string()
     } else {
         finding.explanation.clone()
     };
-    let items = (finding.item_count > 0)
-        .then(|| plural(finding.item_count as usize, "archivo", "archivos"));
+    let items = (finding.item_count > 0).then(|| {
+        plural(
+            finding.item_count as usize,
+            t!("archivo", "file"),
+            t!("archivos", "files"),
+        )
+    });
     col()
         .pl(sp(8.))
         .pr(sp(8.))
@@ -661,8 +705,9 @@ fn finding_details(finding: &Finding) -> impl IntoElement {
                 div()
                     .fs(font::CAPTION)
                     .text_color(theme::text_2())
-                    .child(format!(
+                    .child(tf!(
                         "Limpiarlo libera {}. Otros {} están compartidos con otra carpeta, como la caché de uv o el almacén de pnpm, así que esos bloques siguen en el disco.",
+                        "Cleaning it frees {}. Another {} is shared with another folder, such as the uv cache or the pnpm store, so those blocks stay on disk.",
                         human_size(finding.size),
                         human_size(finding.shared_bytes)
                     )),
@@ -678,7 +723,11 @@ fn finding_details(finding: &Finding) -> impl IntoElement {
                 .when_some(items, |this, items| this.child(tag(items)))
                 .when(!finding.blocked_by.is_empty(), |this| {
                     this.child(pill(
-                        format!("No se limpia con {} abierto", finding.blocked_by.join(" o ")),
+                        tf!(
+                            "No se limpia con {} abierto",
+                            "Can't clean while {} is open",
+                            finding.blocked_by.join(t!(" o ", " or "))
+                        ),
                         theme::amber(),
                     ))
                 }),
@@ -690,6 +739,6 @@ fn join_names(names: &[String]) -> String {
     match names {
         [] => String::new(),
         [only] => only.clone(),
-        [rest @ .., last] => format!("{} y {last}", rest.join(", ")),
+        [rest @ .., last] => tf!("{} y {last}", "{} and {last}", rest.join(", ")),
     }
 }

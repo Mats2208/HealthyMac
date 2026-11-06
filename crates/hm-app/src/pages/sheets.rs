@@ -8,6 +8,7 @@ use gpui::{
     ElementId, FontWeight, Window,
 };
 use hm_core::fmt::human_size;
+use hm_core::{t, tf};
 
 use crate::assets::Icon;
 use crate::flows::clean::Sheet;
@@ -101,9 +102,9 @@ impl Shell {
                             .fs(font::HEADLINE)
                             .font_weight(FontWeight::SEMIBOLD)
                             .child(if self.mode.is_simulated() {
-                                "Simulando…"
+                                t!("Simulando…", "Simulating…")
                             } else {
-                                "Limpiando…"
+                                t!("Limpiando…", "Cleaning…")
                             }),
                     ),
             )
@@ -125,7 +126,7 @@ impl Shell {
                             .fs(font::BODY)
                             .tabular()
                             .text_color(theme::text_2())
-                            .child(format!("{} de {}", sheet.index + 1, sheet.total)),
+                            .child(tf!("{} de {}", "{} of {}", sheet.index + 1, sheet.total)),
                     ),
             )
             .child(
@@ -136,13 +137,17 @@ impl Shell {
                             .fs(font::CAPTION)
                             .tabular()
                             .text_color(theme::text_3())
-                            .child(format!("{} procesados", human_size(sheet.bytes_done))),
+                            .child(tf!(
+                                "{} procesados",
+                                "{} processed",
+                                human_size(sheet.bytes_done)
+                            )),
                     )
                     .child(
                         Btn::secondary(if sheet.cancelling {
-                            "Terminando el actual…"
+                            t!("Terminando el actual…", "Finishing the current one…")
                         } else {
-                            "Cancelar"
+                            t!("Cancelar", "Cancel")
                         })
                         .disabled(sheet.cancelling)
                         .build(
@@ -162,8 +167,13 @@ impl Shell {
         let simulated = !self.mode.may_signal_processes();
         col()
             .child(sheet_header(
-                &format!("¿Terminar {}?", port.process_name),
-                &format!("Escucha en el puerto {} · PID {}", port.port, port.pid),
+                &tf!("¿Terminar {}?", "Quit {}?", port.process_name),
+                &tf!(
+                    "Escucha en el puerto {} · PID {}",
+                    "Listening on port {} · PID {}",
+                    port.port,
+                    port.pid
+                ),
                 cx,
             ))
             .child(
@@ -178,7 +188,10 @@ impl Shell {
                         div()
                             .fs(font::BODY)
                             .text_color(theme::text_2())
-                            .child("Se le pide que termine por las buenas (SIGTERM), para que pueda cerrar y guardar lo que tenga a medias."),
+                            .child(t!(
+                                "Se le pide que termine por las buenas (SIGTERM), para que pueda cerrar y guardar lo que tenga a medias.",
+                                "It is asked to quit nicely (SIGTERM), so it can close and save any unfinished work."
+                            )),
                     )
                     .child(
                         row()
@@ -193,25 +206,36 @@ impl Shell {
                             .child(
                                 col()
                                     .flex_1()
-                                    .child(div().fs(font::BODY).child("Forzar (SIGKILL)"))
+                                    .child(div().fs(font::BODY).child(t!("Forzar (SIGKILL)", "Force (SIGKILL)")))
                                     .child(
                                         div()
                                             .fs(font::CAPTION)
                                             .text_color(theme::text_2())
-                                            .child("Solo si no responde: lo corta en seco y puede perder lo que no haya guardado."),
+                                            .child(t!(
+                                                "Solo si no responde: lo corta en seco y puede perder lo que no haya guardado.",
+                                                "Only if it doesn't respond: it stops at once, and unsaved work may be lost."
+                                            )),
                                     ),
                             ),
                     )
                     .when(simulated, |this| {
                         this.child(notice(
                             NoticeKind::Info,
-                            "SIMULACIÓN: no se va a enviar ninguna señal",
+                            t!(
+                                "SIMULACIÓN: no se va a enviar ninguna señal",
+                                "SIMULATION: no signal will be sent"
+                            ),
                             None,
                             None,
                         ))
                     })
                     .when_some(sheet.error.clone(), |this, error| {
-                        this.child(notice(NoticeKind::Error, "No se ha podido terminar", Some(error.into()), None))
+                        this.child(notice(
+                            NoticeKind::Error,
+                            t!("No se ha podido terminar", "Couldn't quit the process"),
+                            Some(error.into()),
+                            None,
+                        ))
                     }),
             )
             .child(
@@ -220,12 +244,16 @@ impl Shell {
                     .pt(px(0.))
                     .gap(sp(2.))
                     .justify_end()
-                    .child(Btn::ghost("Cancelar").build(
+                    .child(Btn::ghost(t!("Cancelar", "Cancel")).build(
                         "terminate-cancel",
                         cx.listener(|this, _, _, cx| this.close_sheet(cx)),
                     ))
                     .child(
-                        Btn::danger(if sheet.force { "Forzar cierre" } else { "Terminar" })
+                        Btn::danger(if sheet.force {
+                            t!("Forzar cierre", "Force quit")
+                        } else {
+                            t!("Terminar", "Quit")
+                        })
                             .disabled(sheet.in_flight)
                             .build(
                                 "terminate-confirm",

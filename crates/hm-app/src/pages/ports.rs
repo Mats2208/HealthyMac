@@ -1,6 +1,7 @@
 //! Who is listening on what. Handy when something already holds port 3000.
 
 use gpui::{div, prelude::*, px, uniform_list, AnyElement, Context, ElementId, FontWeight, Window};
+use hm_core::{t, tf};
 
 use super::{gutter_row, plural};
 use crate::assets::Icon;
@@ -25,14 +26,23 @@ impl Shell {
                 .any(|port| ports.first().is_some_and(|first| first.user != port.user))
         });
         let subtitle = if self.ports.ports.data.is_some() {
-            format!(
+            tf!(
                 "{} de tus procesos. Se actualiza cada pocos segundos.",
-                plural(count, "puerto escuchando", "puertos escuchando")
+                "{} from your processes. Refreshes every few seconds.",
+                plural(
+                    count,
+                    t!("puerto escuchando", "listening port"),
+                    t!("puertos escuchando", "listening ports")
+                )
             )
         } else {
-            "Qué procesos tuyos están escuchando en la red.".to_string()
+            t!(
+                "Qué procesos tuyos están escuchando en la red.",
+                "Which of your processes are listening on the network."
+            )
+            .to_string()
         };
-        let header = page_header("Puertos", subtitle, Vec::new());
+        let header = page_header(t!("Puertos", "Ports"), subtitle, Vec::new());
 
         let body: AnyElement = if let (None, Some(error)) =
             (&self.ports.ports.data, &self.ports.ports.error)
@@ -41,7 +51,10 @@ impl Shell {
                 .px(px(GUTTER))
                 .child(notice(
                     NoticeKind::Error,
-                    "No hemos podido leer los puertos",
+                    t!(
+                        "No hemos podido leer los puertos",
+                        "We couldn't read the ports"
+                    ),
                     Some(error.clone().into()),
                     None,
                 ))
@@ -50,8 +63,8 @@ impl Shell {
             empty_state(
                 Icon::Plug,
                 theme::text_2(),
-                "Mirando los puertos",
-                "Un segundo.",
+                t!("Mirando los puertos", "Checking ports"),
+                t!("Un segundo.", "One second."),
                 None,
             )
             .into_any_element()
@@ -59,8 +72,11 @@ impl Shell {
             empty_state(
                 Icon::Plug,
                 theme::text_2(),
-                "Nadie está escuchando",
-                "Ninguno de tus procesos tiene un puerto abierto ahora mismo. Cuando arranques un servidor, lo verás aquí.",
+                t!("Nadie está escuchando", "Nothing is listening"),
+                t!(
+                    "Ninguno de tus procesos tiene un puerto abierto ahora mismo. Cuando arranques un servidor, lo verás aquí.",
+                    "None of your processes has a port open right now. When you start a server, you'll see it here."
+                ),
                 None,
             )
             .into_any_element()
@@ -73,7 +89,10 @@ impl Shell {
                 .when_some(self.ports.ports.error.clone(), |this, error| {
                     this.child(div().px(px(GUTTER)).pb(sp(2.)).child(notice(
                         NoticeKind::Warning,
-                        "No se ha podido actualizar: esto es de hace un momento",
+                        t!(
+                            "No se ha podido actualizar: esto es de hace un momento",
+                            "Couldn't refresh: this is from a moment ago"
+                        ),
                         Some(error.into()),
                         None,
                     )))
@@ -88,11 +107,11 @@ impl Shell {
                         .border_color(theme::hairline())
                         .fs(font::MICRO)
                         .text_color(theme::text_3())
-                        .child(div().w(px(72.)).child("Puerto"))
-                        .child(div().w(px(PROCESS_WIDTH)).child("Proceso"))
-                        .child(div().flex_1().min_w(px(0.)).child("Carpeta"))
+                        .child(div().w(px(72.)).child(t!("Puerto", "Port")))
+                        .child(div().w(px(PROCESS_WIDTH)).child(t!("Proceso", "Process")))
+                        .child(div().flex_1().min_w(px(0.)).child(t!("Carpeta", "Folder")))
                         .when(show_user, |this| {
-                            this.child(div().w(px(80.)).child("Usuario"))
+                            this.child(div().w(px(80.)).child(t!("Usuario", "User")))
                         })
                         .child(div().w(px(82.))),
                 )
@@ -230,7 +249,7 @@ impl Shell {
                         )
                     })
                     .child(div().flex_none().w(px(82.)).flex().justify_end().child(
-                        Btn::row_danger("Terminar").build(
+                        Btn::row_danger(t!("Terminar", "Quit")).build(
                             ElementId::NamedInteger("port-kill".into(), index as u64),
                             cx.listener(move |this, _, _, cx| {
                                 this.open_terminate(target.clone(), cx)

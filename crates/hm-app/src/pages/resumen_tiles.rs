@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, px, relative, AnyElement, Context, SharedString};
 use hm_core::fmt::human_size;
-use hm_core::Area;
+use hm_core::{t, tf, Area};
 
 use super::resumen::section_title_row;
 use crate::assets::Icon;
@@ -90,7 +90,7 @@ impl Shell {
                         .gap(sp(0.5))
                         .child(big_number(
                             if total == 0 {
-                                "Nada".to_string()
+                                t!("Nada", "Nothing").to_string()
                             } else {
                                 human_size(total)
                             },
@@ -107,11 +107,11 @@ impl Shell {
                                 .tabular()
                                 .text_color(theme::text_3())
                                 .child(if total == 0 {
-                                    "Todo limpio".to_string()
+                                    t!("Todo limpio", "All clean").to_string()
                                 } else if selected.count > 0 {
-                                    format!("{} elegidos", selected.total_label())
+                                    tf!("{} elegidos", "{} selected", selected.total_label())
                                 } else {
-                                    "Sin elegir".to_string()
+                                    t!("Sin elegir", "None selected").to_string()
                                 }),
                         ),
                 )
@@ -142,16 +142,19 @@ impl Shell {
         col()
             .gap(sp(3.))
             .child(section_title_row(if self.scan.running {
-                "Revisando tu Mac"
+                t!("Revisando tu Mac", "Checking your Mac")
             } else {
-                "Lo que dio tiempo a revisar"
+                t!(
+                    "Lo que dio tiempo a revisar",
+                    "What it checked before stopping"
+                )
             }))
             .when(total > 0 && done == total && self.scan.running, |this| {
                 this.child(
                     div()
                         .fs(font::CAPTION)
                         .text_color(theme::text_2())
-                        .child("Atando cabos…"),
+                        .child(t!("Atando cabos…", "Putting it all together…")),
                 )
             })
             .child(
@@ -176,11 +179,26 @@ impl Shell {
 
 fn tile_blurb(area: Area) -> &'static str {
     match area {
-        Area::System => "Cachés, registros y restos del sistema",
-        Area::Developer => "Compilaciones, dependencias y Docker",
-        Area::LocalAi => "Modelos repetidos y cachés de IA",
-        Area::Apps => "Restos de apps que ya no tienes",
-        Area::Files => "Archivos grandes y descargas viejas",
+        Area::System => t!(
+            "Cachés, registros y restos del sistema",
+            "Caches, logs and system leftovers"
+        ),
+        Area::Developer => t!(
+            "Compilaciones, dependencias y Docker",
+            "Builds, dependencies and Docker"
+        ),
+        Area::LocalAi => t!(
+            "Modelos repetidos y cachés de IA",
+            "Duplicate models and AI caches"
+        ),
+        Area::Apps => t!(
+            "Restos de apps que ya no tienes",
+            "Leftovers from apps you removed"
+        ),
+        Area::Files => t!(
+            "Archivos grandes y descargas viejas",
+            "Large files and old downloads"
+        ),
     }
 }
 
@@ -198,8 +216,8 @@ fn scanner_line(id: &'static str, name: &'static str, status: ScannerStatus) -> 
     };
     let trailing = match &status {
         ScannerStatus::Done { bytes, .. } if *bytes > 0 => human_size(*bytes),
-        ScannerStatus::Done { .. } => "Nada".to_string(),
-        ScannerStatus::Failed(_) => "Falló".to_string(),
+        ScannerStatus::Done { .. } => t!("Nada", "Nothing").to_string(),
+        ScannerStatus::Failed(_) => t!("Falló", "Failed").to_string(),
         _ => String::new(),
     };
     let waiting = matches!(status, ScannerStatus::Waiting);

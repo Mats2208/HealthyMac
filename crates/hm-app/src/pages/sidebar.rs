@@ -6,7 +6,7 @@ use gpui::{
     div, img, prelude::*, px, AnyElement, Context, FontWeight, Image, ImageFormat, SharedString,
 };
 use hm_core::fmt::human_size;
-use hm_core::Area;
+use hm_core::{t, Area};
 
 use crate::assets::Icon;
 use crate::logic::selection::reclaimable_by_area;
@@ -56,12 +56,18 @@ impl Shell {
                             .child("HealthyMac"),
                     ),
             )
-            .child(self.nav_item(Page::Resumen, Icon::Gauge, "Resumen", None, cx))
-            .child(group_label("Limpieza"))
+            .child(self.nav_item(
+                Page::Resumen,
+                Icon::Gauge,
+                t!("Resumen", "Overview"),
+                None,
+                cx,
+            ))
+            .child(group_label(t!("Limpieza", "Cleanup")))
             .child(self.nav_item(
                 Page::Area(Area::System),
                 Icon::Sparkle,
-                "Sistema",
+                t!("Sistema", "System"),
                 size_of(Area::System),
                 cx,
             ))
@@ -75,29 +81,53 @@ impl Shell {
             .child(self.nav_item(
                 Page::Area(Area::LocalAi),
                 Icon::Nodes,
-                "IA local",
+                t!("IA local", "Local AI"),
                 size_of(Area::LocalAi),
                 cx,
             ))
             .child(self.nav_item(
                 Page::Area(Area::Files),
                 Icon::File,
-                "Archivos",
+                t!("Archivos", "Files"),
                 size_of(Area::Files),
                 cx,
             ))
-            .child(group_label("Desarrollo e IA"))
-            .child(self.nav_item(Page::Modelos, Icon::Cube, "Modelos", None, cx))
-            .child(self.nav_item(Page::Proyectos, Icon::Folder, "Proyectos", None, cx))
-            .child(self.nav_item(Page::Puertos, Icon::Plug, "Puertos", None, cx))
-            .child(group_label("Tu Mac"))
+            .child(group_label(t!("Desarrollo e IA", "Development and AI")))
+            .child(self.nav_item(Page::Modelos, Icon::Cube, t!("Modelos", "Models"), None, cx))
+            .child(self.nav_item(
+                Page::Proyectos,
+                Icon::Folder,
+                t!("Proyectos", "Projects"),
+                None,
+                cx,
+            ))
+            .child(self.nav_item(Page::Puertos, Icon::Plug, t!("Puertos", "Ports"), None, cx))
+            .child(group_label(t!("Tu Mac", "Your Mac")))
             .child(self.nav_item(Page::Apps, Icon::Grid, "Apps", size_of(Area::Apps), cx))
-            .child(self.nav_item(Page::Arranque, Icon::Power, "Arranque", None, cx))
-            .child(self.nav_item(Page::Mapa, Icon::Treemap, "Mapa de disco", None, cx))
+            .child(self.nav_item(
+                Page::Arranque,
+                Icon::Power,
+                t!("Arranque", "Startup"),
+                None,
+                cx,
+            ))
+            .child(self.nav_item(
+                Page::Mapa,
+                Icon::Treemap,
+                t!("Mapa de disco", "Disk Map"),
+                None,
+                cx,
+            ))
             .child(self.nav_item(Page::Monitor, Icon::Activity, "Monitor", None, cx))
             .child(div().flex_1().min_h(px(8.)))
             .when_some(self.mode_badges(), |this, badges| this.child(badges))
-            .child(self.nav_item(Page::Ajustes, Icon::Sliders, "Ajustes", None, cx))
+            .child(self.nav_item(
+                Page::Ajustes,
+                Icon::Sliders,
+                t!("Ajustes", "Settings"),
+                None,
+                cx,
+            ))
     }
 
     fn nav_item(
@@ -177,15 +207,23 @@ impl Shell {
     fn mode_lines(&self) -> Vec<AnyElement> {
         let mut badges = Vec::new();
         if self.mode.demo {
-            badges.push(badge(Icon::Layers, "Demo", "datos inventados"));
+            badges.push(badge(
+                Icon::Layers,
+                "Demo",
+                t!("datos inventados", "sample data"),
+            ));
         }
         if self.mode.dry_run || self.mode.demo {
-            badges.push(badge(Icon::Flask, "Simulación", "no se borra nada"));
+            badges.push(badge(
+                Icon::Flask,
+                t!("Simulación", "Simulation"),
+                t!("no se borra nada", "nothing is deleted"),
+            ));
         }
         if let (Some(home), false) = (&self.mode.home_override, self.mode.demo) {
             badges.push(badge(
                 Icon::Folder,
-                "Home de prueba",
+                t!("Home de prueba", "Test home"),
                 &crate::logic::truncate::truncate_middle(&home.display().to_string(), 22),
             ));
         }
