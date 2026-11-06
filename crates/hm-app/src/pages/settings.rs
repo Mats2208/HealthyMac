@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use gpui::{div, prelude::*, px, AnyElement, Context, ElementId, FontWeight, SharedString, Window};
 use hm_core::fmt::{human_age, human_size};
-use hm_core::{Appearance, CleanStatus, RemovalMode};
+use hm_core::{Appearance, CleanStatus, LanguageChoice, RemovalMode};
 
 use super::{plural, scroll_pane};
 use crate::assets::Icon;
@@ -204,7 +204,30 @@ impl Shell {
             Appearance::Dark => 2,
         };
         let entity = cx.entity().downgrade();
-        section("Apariencia").child(setting_row(
+        let languages: [SharedString; 3] = ["Sistema".into(), "Español".into(), "English".into()];
+        let language = match self.ctx.config.language {
+            LanguageChoice::System => 0,
+            LanguageChoice::Spanish => 1,
+            LanguageChoice::English => 2,
+        };
+        let language_entity = cx.entity().downgrade();
+        section("Apariencia")
+            .child(setting_row(
+                "Idioma",
+                "Sistema usa el primer idioma de macOS. Lo ya escaneado cambia al volver a escanear.",
+                segmented("language", &languages, language, move |index, window, cx| {
+                    let value = match index {
+                        1 => LanguageChoice::Spanish,
+                        2 => LanguageChoice::English,
+                        _ => LanguageChoice::System,
+                    };
+                    language_entity
+                        .update(cx, |shell, cx| shell.set_language_choice(value, window, cx))
+                        .ok();
+                })
+                .into_any_element(),
+            ))
+            .child(setting_row(
             "Tema",
             "Sistema sigue el modo claro u oscuro de macOS.",
             segmented("appearance", &labels, selected, move |index, window, cx| {

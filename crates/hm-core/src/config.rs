@@ -27,6 +27,16 @@ pub enum Appearance {
     Dark,
 }
 
+/// Interface language. `System` follows the first language in macOS's preferred list.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LanguageChoice {
+    #[default]
+    System,
+    Spanish,
+    English,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -41,6 +51,7 @@ pub struct Config {
     pub excluded_paths: Vec<PathBuf>,
     pub removal_mode: RemovalMode,
     pub appearance: Appearance,
+    pub language: LanguageChoice,
 }
 
 impl Default for Config {
@@ -52,6 +63,7 @@ impl Default for Config {
             excluded_paths: Vec::new(),
             removal_mode: RemovalMode::Trash,
             appearance: Appearance::System,
+            language: LanguageChoice::System,
         }
     }
 }

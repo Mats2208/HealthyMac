@@ -2,6 +2,7 @@
 
 pub mod appearance;
 pub mod clean;
+pub mod language;
 pub mod live;
 pub mod load;
 pub mod scan;

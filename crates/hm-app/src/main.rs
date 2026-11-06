@@ -19,7 +19,7 @@ use gpui::{
     actions, point, px, size, App, AppContext, Application, Bounds, KeyBinding, Menu, MenuItem,
     SystemMenuType, TitlebarOptions, WindowBackgroundAppearance, WindowBounds, WindowOptions,
 };
-use hm_core::{Config, ScanContext};
+use hm_core::{t, Config, ScanContext};
 
 use crate::state::{
     AppsState, DiskState, LiveState, ModelsState, Page, PortsState, ProjectsState, RunMode,
@@ -61,9 +61,43 @@ fn build_context(mode: &RunMode) -> (ScanContext, Option<String>) {
     }
 }
 
+/// The menu bar, in the current language. Built again when the language changes.
+pub fn menus() -> Vec<Menu> {
+    vec![
+        Menu {
+            name: "HealthyMac".into(),
+            items: vec![
+                MenuItem::action(t!("Ajustes…", "Settings…"), OpenSettings),
+                MenuItem::separator(),
+                MenuItem::os_submenu(t!("Servicios", "Services"), SystemMenuType::Services),
+                MenuItem::separator(),
+                MenuItem::action(t!("Ocultar HealthyMac", "Hide HealthyMac"), Hide),
+                MenuItem::action(t!("Ocultar otros", "Hide Others"), HideOthers),
+                MenuItem::action(t!("Mostrar todo", "Show All"), ShowAll),
+                MenuItem::separator(),
+                MenuItem::action(t!("Salir de HealthyMac", "Quit HealthyMac"), Quit),
+            ],
+        },
+        Menu {
+            name: t!("Ventana", "Window").into(),
+            items: vec![
+                MenuItem::action(t!("Minimizar", "Minimize"), Minimize),
+                MenuItem::action(t!("Zoom", "Zoom"), Zoom),
+                MenuItem::separator(),
+                MenuItem::action(t!("Cerrar", "Close"), CloseWindow),
+            ],
+        },
+    ]
+}
+
 fn main() {
     hm_core::threads::configure_global_pool();
     let mode = RunMode::from_env();
+    // Read the config before anything is drawn, so the first frame and the menu bar are already in
+    // the right language.
+    let (ctx, config_error) = build_context(&mode);
+    hm_core::i18n::set_language(flows::language::resolve(ctx.config.language));
+    let mut first_context = Some((ctx, config_error));
     // For automated testing: open without taking focus from whatever the user is doing.
     let background = std::env::var_os("HEALTHYMAC_BACKGROUND").is_some();
 
@@ -83,31 +117,7 @@ fn main() {
                 KeyBinding::new("cmd-w", CloseWindow, None),
                 KeyBinding::new("cmd-,", OpenSettings, None),
             ]);
-            cx.set_menus(vec![
-                Menu {
-                    name: "HealthyMac".into(),
-                    items: vec![
-                        MenuItem::action("Ajustes…", OpenSettings),
-                        MenuItem::separator(),
-                        MenuItem::os_submenu("Servicios", SystemMenuType::Services),
-                        MenuItem::separator(),
-                        MenuItem::action("Ocultar HealthyMac", Hide),
-                        MenuItem::action("Ocultar otros", HideOthers),
-                        MenuItem::action("Mostrar todo", ShowAll),
-                        MenuItem::separator(),
-                        MenuItem::action("Salir de HealthyMac", Quit),
-                    ],
-                },
-                Menu {
-                    name: "Ventana".into(),
-                    items: vec![
-                        MenuItem::action("Minimizar", Minimize),
-                        MenuItem::action("Zoom", Zoom),
-                        MenuItem::separator(),
-                        MenuItem::action("Cerrar", CloseWindow),
-                    ],
-                },
-            ]);
+            cx.set_menus(menus());
             // This is a one-window app: closing it means you are done.
             cx.on_window_closed(|cx| {
                 if cx.windows().is_empty() {
@@ -140,12 +150,9 @@ fn main() {
                         cx.new(|cx| {
                             let focus = cx.focus_handle();
                             focus.focus(window);
-                            let (ctx, config_error) = build_context(&mode);
-                            let scanners = if mode.demo {
-                                demo::scan::meta(mode.stress)
-                            } else {
-                                flows::scan::scanner_meta(&flows::scan::all_scanners())
-                            };
+                            let (ctx, config_error) =
+                                first_context.take().unwrap_or_else(|| build_context(&mode));
+                            let scanners = flows::scan::scanners_for(&mode);
                             let mut shell = Shell {
                                 mode,
                                 ctx,

@@ -234,20 +234,25 @@ pub fn content_width(window: &Window) -> f32 {
     f(window.viewport_size().width) - theme::SIDEBAR_WIDTH - 8.0
 }
 
-/// Spanish thousands separator: "1.204".
+/// Thousands separator for the current language: "1.204" in Spanish, "1,204" in English.
 pub fn fmt_count(value: u64) -> String {
+    let separator = if hm_core::i18n::is_english() {
+        ','
+    } else {
+        '.'
+    };
     let digits = value.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
     for (index, digit) in digits.chars().enumerate() {
         if index > 0 && (digits.len() - index).is_multiple_of(3) {
-            out.push('.');
+            out.push(separator);
         }
         out.push(digit);
     }
     out
 }
 
-/// Choosing between singular and plural, the honest way.
+/// Choosing between singular and plural, the honest way. Callers pass both forms through `t!`.
 pub fn plural(count: usize, one: &str, many: &str) -> String {
     if count == 1 {
         format!("1 {one}")

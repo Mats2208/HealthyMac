@@ -20,6 +20,15 @@ pub fn all_scanners() -> Vec<Box<dyn Scanner>> {
     scanners
 }
 
+/// The scanners this run shows, with their names in the current language.
+pub fn scanners_for(mode: &crate::state::RunMode) -> Vec<ScannerMeta> {
+    if mode.demo {
+        crate::demo::scan::meta(mode.stress)
+    } else {
+        scanner_meta(&all_scanners())
+    }
+}
+
 pub fn scanner_meta(scanners: &[Box<dyn Scanner>]) -> Vec<ScannerMeta> {
     scanners
         .iter()
