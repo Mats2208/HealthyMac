@@ -84,10 +84,10 @@ impl Shell {
             .child(self.mode_option(
                 RemovalMode::DeleteRegenerable,
                 mode,
-                t!("Borrar lo que se regenera solo", "Delete what comes back on its own"),
+                t!("Borrar lo que se regenera solo", "Delete what rebuilds itself"),
                 t!(
                     "Lo seguro que se regenera (cachés, compilaciones) se borra al momento y libera espacio ya. Todo lo demás sigue yendo a la Papelera.",
-                    "Safe items that come back on their own (caches, builds) are deleted at once and free space now. Everything else still goes to the Trash."
+                    "Safe items that rebuild themselves (caches, builds) are deleted at once and free space now. Everything else still goes to the Trash."
                 ),
                 cx,
             ))
@@ -238,7 +238,7 @@ impl Shell {
             LanguageChoice::English => 2,
         };
         let language_entity = cx.entity().downgrade();
-        section(t!("Apariencia", "Appearance"))
+        section(t!("Apariencia e idioma", "Appearance and language"))
             .child(setting_row(
                 t!("Idioma", "Language"),
                 t!(

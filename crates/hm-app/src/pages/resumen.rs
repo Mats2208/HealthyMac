@@ -703,7 +703,7 @@ fn found_sentence(findings: &[hm_core::Finding], to_review: u64) -> String {
     } else if to_review > 0 {
         tf!(
             "Y otros {} si los revisas: pueden ser cosas tuyas.",
-            "Plus {} more if you review them: they may be yours.",
+            "Another {} if you review it: it may be yours.",
             human_size(to_review)
         )
     } else {
