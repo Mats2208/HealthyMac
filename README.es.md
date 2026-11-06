@@ -12,7 +12,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/versión-0.1.0-6e6e73?style=flat-square&labelColor=3a3a3c" alt="versión 0.1.0">
-  <img src="https://img.shields.io/badge/tests-669%20pasan-248a3d?style=flat-square&labelColor=3a3a3c" alt="669 tests que pasan">
+  <img src="https://img.shields.io/badge/tests-672%20pasan-248a3d?style=flat-square&labelColor=3a3a3c" alt="672 tests que pasan">
   <img src="https://img.shields.io/badge/runtimes%20de%20IA-14-6e6e73?style=flat-square&labelColor=3a3a3c" alt="14 runtimes de IA">
   <img src="https://img.shields.io/badge/páginas-12-6e6e73?style=flat-square&labelColor=3a3a3c" alt="12 páginas">
   <img src="https://img.shields.io/badge/interfaz-español%20%7C%20inglés-6e6e73?style=flat-square&labelColor=3a3a3c" alt="Interfaz en español e inglés">
@@ -34,7 +34,7 @@
 
 <div align="center">
 
-| **Tamaños reales** | **14 runtimes de IA** | **Primero a la Papelera** | **669 tests** | **12 MB** |
+| **Tamaños reales** | **14 runtimes de IA** | **Primero a la Papelera** | **672 tests** | **12 MB** |
 |:---:|:---:|:---:|:---:|:---:|
 | cuenta los clones APFS y los enlaces duros | un solo inventario, comparado con el límite de memoria de Metal | cada ruta se revalida justo antes de actuar | seguridad, escáneres y analizadores | ~1 % de CPU y ~100 MB de RAM en reposo |
 
@@ -158,8 +158,8 @@ cargo test --workspace
 | `hm-system` | 215 | Escáneres, guardas de permisos, puntuación de salud, árbol de disco, analizadores del monitor |
 | `hm-ai` | 192 | Lectura de GGUF, almacenes de modelos, encaje en memoria, duplicados, runtimes |
 | `hm-dev` | 154 | Reglas de artefactos y actividad de proyectos, cachés de paquetes, Docker, puertos |
-| `hm-core` | 71 | Política de seguridad, limpiador, tamaños APFS, clonado, la macro `t!` |
-| `hm-app` | 36 | Lógica de selección, disposición del treemap, agrupación de listas, recorte de textos |
+| `hm-core` | 72 | Política de seguridad, limpiador, tamaños APFS, clonado, la macro `t!` |
+| `hm-app` | 38 | Lógica de selección, disposición del treemap, agrupación de listas, recorte de textos |
 | `hm-cli` | 1 | Idioma según la configuración regional |
 
 Otros dos tests usan la Papelera real, y están ignorados por defecto porque dejan archivos diminutos en ella.
