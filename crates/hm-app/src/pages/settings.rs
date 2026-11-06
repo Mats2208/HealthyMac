@@ -15,8 +15,6 @@ use crate::ui::controls::{icon_button, pill, stepper, Btn, BtnSize};
 use crate::ui::label::path_label;
 use crate::ui::{col, icon, row, TextExt};
 
-const FDA_URL: &str = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
-
 impl Shell {
     pub fn render_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let width = (super::content_width(window) - GUTTER * 2.0).min(720.0);
@@ -194,7 +192,7 @@ impl Shell {
                                     .icon(Icon::External)
                                     .build(
                                         "fda-open",
-                                        cx.listener(|_, _, _, cx| cx.open_url(FDA_URL)),
+                                        cx.listener(|_, _, _, cx| cx.open_url(super::FULL_DISK_ACCESS_URL)),
                                     ),
                             )
                         }),

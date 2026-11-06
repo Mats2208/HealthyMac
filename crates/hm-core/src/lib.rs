@@ -24,6 +24,6 @@ pub mod threads;
 pub use clean::{CleanEvent, CleanOptions, CleanOutcome, CleanReport, CleanStatus, Cleaner};
 pub use config::{Config, RemovalMode};
 pub use fsutil::{measure, CancelToken, SizeInfo};
-pub use model::{Action, Area, Finding, Recovery, Risk};
+pub use model::{Action, Area, Finding, Recovery, Risk, TAG_NEEDS_FULL_DISK_ACCESS};
 pub use safety::{SafetyPolicy, SafetyViolation};
 pub use scan::{run_scan, ScanContext, ScanEvent, Scanner};

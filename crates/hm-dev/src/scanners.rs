@@ -196,6 +196,7 @@ fn full_disk_access_notice(scanner_id: &str, key: &str, what_it_unlocks: &str) -
     .group("Permisos")
     .explanation(what_it_unlocks)
     .tag("permisos")
+    .tag(hm_core::TAG_NEEDS_FULL_DISK_ACCESS)
 }
 
 #[cfg(test)]

@@ -113,7 +113,7 @@ pub(crate) fn is_inside_guarded(home: &Path, path: &Path) -> bool {
 }
 
 /// Lets the UI collapse the per-scanner "grant access" findings into one call to action.
-pub(crate) const NEEDS_ACCESS_TAG: &str = "requiere_acceso_total";
+pub(crate) const NEEDS_ACCESS_TAG: &str = hm_core::TAG_NEEDS_FULL_DISK_ACCESS;
 
 pub(crate) fn has_access(ctx: &ScanContext) -> bool {
     fsutil::has_full_disk_access(&ctx.home)

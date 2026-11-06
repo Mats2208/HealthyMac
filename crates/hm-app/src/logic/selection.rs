@@ -11,6 +11,16 @@ pub fn is_actionable(finding: &Finding) -> bool {
     finding.action != Action::ReportOnly
 }
 
+/// A scanner's note that it skipped something for lack of Full Disk Access. The area pages gather
+/// these into one notice with a way to grant it, instead of listing them as findings.
+pub fn needs_full_disk_access(finding: &Finding) -> bool {
+    !is_actionable(finding)
+        && finding
+            .tags
+            .iter()
+            .any(|tag| tag == hm_core::TAG_NEEDS_FULL_DISK_ACCESS)
+}
+
 /// Selection for a set of findings. Defaults come only from `selected_by_default`; what the user
 /// changes is kept as an override, keyed by the finding's stable id, so it survives a new scan.
 #[derive(Clone, Debug, Default)]

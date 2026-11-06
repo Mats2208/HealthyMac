@@ -214,8 +214,18 @@ pub enum FindingRow {
     },
     Item {
         index: usize,
+        /// Set when the item is alone under its scanner or group and stands in for that heading,
+        /// so the same name and size are not shown twice in a row.
+        heading: Option<Heading>,
     },
     Gap,
+}
+
+/// The heading a lone item replaces.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Heading {
+    Scanner,
+    Group(String),
 }
 
 pub struct AreaView {

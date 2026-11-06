@@ -394,9 +394,10 @@ fn findings_for(scanner: &'static str) -> Vec<Finding> {
                 .explanation("Un instalador que ya usaste."),
         ],
         "files.fda" => vec![
-            Finding::new(scanner, Area::Files, "fda", "Podríamos ver más con Acceso total al disco")
+            Finding::new(scanner, Area::Files, "fda", "Falta el Acceso total al disco")
                 .subtitle("Documentos, Escritorio, Descargas y los datos de las apps")
-                .explanation("Sin ese permiso, esas carpetas se quedan fuera del escaneo. Puedes concederlo en Ajustes, y retirarlo cuando quieras."),
+                .explanation("Sin ese permiso, Documentos, Escritorio, Descargas y los datos de las apps se quedan fuera del escaneo. Puedes concederlo en Ajustes, y retirarlo cuando quieras.")
+                .tag(hm_core::TAG_NEEDS_FULL_DISK_ACCESS),
         ],
         _ => Vec::new(),
     }

@@ -653,7 +653,8 @@ fn protected(id: &str, snapshot: &Snapshot) -> Vec<Finding> {
              mitad del análisis: {list}. Concede Acceso total al disco a HealthyMac para incluirlas en el \
              inventario y buscar duplicados también ahí."
         ))
-        .items(skipped.len() as u64)]
+        .items(skipped.len() as u64)
+        .tag(hm_core::TAG_NEEDS_FULL_DISK_ACCESS)]
 }
 
 #[cfg(test)]

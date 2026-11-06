@@ -150,6 +150,10 @@ pub struct Finding {
     pub tags: Vec<String>,
 }
 
+/// Tag on the report-only finding a scanner emits when it skipped something for lack of Full Disk
+/// Access. Every scanner uses the same one, so the UI can gather them into a single call to action.
+pub const TAG_NEEDS_FULL_DISK_ACCESS: &str = "requiere_acceso_total";
+
 impl Finding {
     /// Starts a finding with conservative defaults: `Review` risk, unrecoverable, not selected and
     /// report-only. Scanners opt in to anything more permissive explicitly.

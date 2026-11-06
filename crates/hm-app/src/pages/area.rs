@@ -6,12 +6,12 @@ use gpui::{
 use hm_core::fmt::{human_age, human_size};
 use hm_core::{Area, Finding};
 
-use super::{content_width, plural};
+use super::{content_width, plural, FULL_DISK_ACCESS_URL};
 use crate::assets::Icon;
-use crate::logic::selection::{is_actionable, GroupState};
-use crate::state::{FindingRow, Shell};
+use crate::logic::selection::{is_actionable, needs_full_disk_access, GroupState};
+use crate::state::{FindingRow, Heading, Shell};
 use crate::theme::{self, font, radius, sp, GUTTER};
-use crate::ui::chrome::{big_number, empty_state, page_header};
+use crate::ui::chrome::{big_number, empty_state, notice, page_header, NoticeKind};
 use crate::ui::controls::{checkbox, pill, tag, Btn, BtnSize};
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{clip, clip_middle, col, icon, row, TextExt};
@@ -115,7 +115,15 @@ impl Shell {
             } else {
                 Icon::Scan
             };
-            return empty_state(which, accent, title, message, action).into_any_element();
+            let empty = empty_state(which, accent, title, message, action);
+            return match self.access_notice(area, cx) {
+                Some(access) => col()
+                    .size_full()
+                    .child(div().flex_none().px(px(GUTTER)).child(access))
+                    .child(empty)
+                    .into_any_element(),
+                None => empty.into_any_element(),
+            };
         }
 
         let list_state = view.list.clone();
@@ -128,6 +136,7 @@ impl Shell {
         let total = available.bytes;
         let actionable = available.count;
         let state = self.selection.state_of(members.iter().copied());
+        let access = self.access_notice(area, cx);
 
         col()
             .flex_1()
@@ -178,6 +187,9 @@ impl Shell {
                         ),
                     ),
             )
+            .when_some(access, |this, access| {
+                this.child(div().flex_none().px(px(GUTTER)).pb(sp(3.)).child(access))
+            })
             .child(
                 div()
                     .relative()
@@ -200,6 +212,47 @@ impl Shell {
                 this.child(self.render_selection_bar(Some(area), summary, cx))
             })
             .into_any_element()
+    }
+
+    /// One notice for every part of this area a scanner skipped for lack of Full Disk Access, with
+    /// the way to grant it. `None` when nothing was skipped.
+    fn access_notice(&self, area: Area, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let skipped: Vec<&Finding> = self
+            .findings
+            .iter()
+            .filter(|f| f.area == area && needs_full_disk_access(f))
+            .collect();
+        let detail = match skipped.as_slice() {
+            [] => return None,
+            [only] if !only.explanation.is_empty() => only.explanation.clone(),
+            _ => {
+                let mut names: Vec<String> = skipped
+                    .iter()
+                    .map(|f| self.scanner_name(&f.scanner_id))
+                    .collect();
+                names.dedup();
+                format!(
+                    "Sin ese permiso, parte de {} se queda fuera del escaneo. Se concede en Ajustes del Sistema y se puede retirar cuando quieras.",
+                    join_names(&names)
+                )
+            }
+        };
+        let open = Btn::secondary("Abrir Ajustes")
+            .size(BtnSize::Sm)
+            .icon(Icon::External)
+            .build(
+                "area-fda-open",
+                cx.listener(|_, _, _, cx| cx.open_url(FULL_DISK_ACCESS_URL)),
+            );
+        Some(
+            notice(
+                NoticeKind::Info,
+                "Falta el Acceso total al disco",
+                Some(detail.into()),
+                Some(open.into_any_element()),
+            )
+            .into_any_element(),
+        )
     }
 
     fn toggle_all_in_area(&mut self, area: Area, cx: &mut Context<Self>) {
@@ -357,8 +410,8 @@ impl Shell {
                     )
                     .into_any_element()
             }
-            FindingRow::Item { index } => {
-                self.render_finding_item(area, row_index, index, window, cx)
+            FindingRow::Item { index, heading } => {
+                self.render_finding_item(area, row_index, index, heading, window, cx)
             }
             FindingRow::Gap => div().h(px(8.)).into_any_element(),
         }
@@ -369,12 +422,27 @@ impl Shell {
         area: Area,
         row_index: usize,
         index: usize,
+        heading: Option<Heading>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let finding = &self.findings[index];
         let accent = theme::area_color(area);
-        let nested = finding.group.is_some();
+        let stands_for_scanner = heading == Some(Heading::Scanner);
+        let nested = finding.group.is_some() && !stands_for_scanner;
+        // A lone item takes its group's name, or keeps its own and says which scanner found it.
+        let title: SharedString = match &heading {
+            Some(Heading::Group(name)) => name.clone().into(),
+            _ => finding.title.clone().into(),
+        };
+        let context = if stands_for_scanner {
+            let name = self.scanner_name(&finding.scanner_id);
+            let (lower_name, lower_title) = (name.to_lowercase(), finding.title.to_lowercase());
+            let repeats = lower_name.contains(&lower_title) || lower_title.contains(&lower_name);
+            (!repeats).then(|| format!("{name} ·"))
+        } else {
+            None
+        };
         let view = &self.views[&area];
         let expanded = view.expanded.contains(&finding.id);
         let actionable = is_actionable(finding);
@@ -392,6 +460,7 @@ impl Shell {
 
         col()
             .w_full()
+            .when(stands_for_scanner, |this| this.pt(sp(2.)))
             .pl(px(if nested { GUTTER + 12.0 } else { GUTTER - 4.0 }))
             .pr(px(GUTTER - 4.0))
             .child(
@@ -453,16 +522,30 @@ impl Shell {
                                             .child(
                                                 clip()
                                                     .fs(font::BODY)
+                                                    .when(stands_for_scanner, |this| {
+                                                        this.font_weight(FontWeight::SEMIBOLD)
+                                                    })
                                                     .text_color(theme::text_1())
-                                                    .child(finding.title.clone()),
+                                                    .child(title),
                                             )
                                             .when(
-                                                !subtitle.is_empty() || shared.is_some(),
+                                                !subtitle.is_empty()
+                                                    || shared.is_some()
+                                                    || context.is_some(),
                                                 |this| {
                                                     this.child(
                                                         row()
                                                             .w_full()
                                                             .gap(sp(2.))
+                                                            .when_some(context, |this, context| {
+                                                                this.child(
+                                                                    div()
+                                                                        .flex_none()
+                                                                        .fs(font::MICRO)
+                                                                        .text_color(theme::text_2())
+                                                                        .child(context),
+                                                                )
+                                                            })
                                                             .when(!subtitle.is_empty(), |this| {
                                                                 this.child(
                                                                     clip_middle()
@@ -605,4 +688,13 @@ fn finding_details(finding: &Finding) -> impl IntoElement {
                     ))
                 }),
         )
+}
+
+/// "A", "A y B", "A, B y C".
+fn join_names(names: &[String]) -> String {
+    match names {
+        [] => String::new(),
+        [only] => only.clone(),
+        [rest @ .., last] => format!("{} y {last}", rest.join(", ")),
+    }
 }

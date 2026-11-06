@@ -30,6 +30,10 @@ use crate::theme::{self, font, radius, sp};
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{f, TextExt};
 
+/// Opens the Full Disk Access list in System Settings.
+pub const FULL_DISK_ACCESS_URL: &str =
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
+
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let page = self.render_page(window, cx);
