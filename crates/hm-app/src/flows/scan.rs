@@ -47,6 +47,15 @@ enum ScanMsg {
 }
 
 impl Shell {
+    /// Changes every time a scan finishes, so numbers and bars that show its results can replay
+    /// their entrance once per scan and stay put otherwise.
+    pub fn scan_key(&self) -> u64 {
+        self.scan
+            .finished_at
+            .and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok())
+            .map_or(0, |since| since.as_millis() as u64)
+    }
+
     pub fn scanner_name(&self, id: &str) -> String {
         self.scanners
             .iter()

@@ -476,6 +476,10 @@ pub struct Shell {
     pub settings: SettingsState,
 
     pub sheet: Option<Sheet>,
+    /// The sheet is playing its way out; it is removed when that ends.
+    pub sheet_closing: bool,
+    /// Counts sheets opened from nothing, so each one gets a fresh entrance.
+    pub sheet_opened: u64,
     pub toast: Option<Toast>,
     pub toast_serial: u64,
     /// Where the pointer pressed the drag strip, so that a press with no movement is not a move.

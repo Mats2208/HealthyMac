@@ -1,6 +1,8 @@
 //! The dashboard's lower half: a tile per area, and every scanner's progress while one runs.
 
-use gpui::{div, prelude::*, px, relative, AnyElement, Context, SharedString};
+use gpui::{
+    div, prelude::*, px, relative, AnimationExt, AnyElement, Context, ElementId, SharedString,
+};
 use hm_core::fmt::human_size;
 use hm_core::{t, tf, Area};
 
@@ -11,6 +13,7 @@ use crate::state::{AppsTab, Page, ScannerStatus, Shell};
 use crate::theme::{self, font, radius, sp};
 use crate::ui::chrome::big_number;
 use crate::ui::controls::{dot, spinner};
+use crate::ui::motion;
 use crate::ui::{clip, col, icon, row, TextExt};
 
 /// The areas in the order they appear on the dashboard.
@@ -25,6 +28,7 @@ pub const AREAS: [Area; 5] = [
 impl Shell {
     pub(super) fn area_tile(&self, area: Area, cx: &mut Context<Self>) -> impl IntoElement {
         let accent = theme::area_color(area);
+        let scan_key = self.scan_key();
         let scanned = self.scan.finished_once;
         let members: Vec<_> = self
             .findings
@@ -88,19 +92,19 @@ impl Shell {
                 this.child(
                     col()
                         .gap(sp(0.5))
-                        .child(big_number(
-                            if total == 0 {
-                                t!("Nada", "Nothing").to_string()
-                            } else {
-                                human_size(total)
-                            },
-                            font::HEADLINE + 2.0,
-                            if total == 0 {
-                                theme::text_3()
-                            } else {
-                                theme::text_1()
-                            },
-                        ))
+                        .child(if total == 0 {
+                            big_number(t!("Nada", "Nothing"), font::HEADLINE + 2.0, theme::text_3())
+                                .into_any_element()
+                        } else {
+                            motion::counting_size(
+                                format!("tile-{area:?}"),
+                                scan_key,
+                                total,
+                                font::HEADLINE + 2.0,
+                                theme::text_1(),
+                            )
+                            .into_any_element()
+                        })
                         .child(
                             clip()
                                 .fs(font::MICRO)
@@ -122,13 +126,15 @@ impl Shell {
                         .rounded(px(2.))
                         .bg(theme::surface_2())
                         .when(total > 0 && selected.bytes > 0, |this| {
-                            this.child(
-                                div()
-                                    .h_full()
-                                    .w(relative((selected.bytes as f32 / total as f32).min(1.0)))
-                                    .rounded(px(2.))
-                                    .bg(accent),
-                            )
+                            let fraction = (selected.bytes as f32 / total as f32).min(1.0);
+                            this.child(div().h_full().rounded(px(2.)).bg(accent).with_animation(
+                                ElementId::NamedInteger(
+                                    format!("tile-bar-{area:?}").into(),
+                                    scan_key,
+                                ),
+                                motion::animation(motion::pace::FILL),
+                                move |this, t| this.w(relative(fraction * t)),
+                            ))
                         }),
                 )
             })

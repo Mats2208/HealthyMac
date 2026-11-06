@@ -1,7 +1,8 @@
 //! The findings of one area: grouped, selectable and explained.
 
 use gpui::{
-    div, list, prelude::*, px, AnyElement, Context, ElementId, FontWeight, SharedString, Window,
+    div, list, prelude::*, px, AnimationExt, AnyElement, Context, ElementId, FontWeight,
+    SharedString, Window,
 };
 use hm_core::fmt::{human_age, human_size};
 use hm_core::{t, tf, Area, Finding};
@@ -11,8 +12,9 @@ use crate::assets::Icon;
 use crate::logic::selection::{is_actionable, needs_full_disk_access, GroupState};
 use crate::state::{FindingRow, Heading, Shell};
 use crate::theme::{self, font, radius, sp, GUTTER};
-use crate::ui::chrome::{big_number, empty_state, notice, page_header, NoticeKind};
+use crate::ui::chrome::{empty_state, notice, page_header, NoticeKind};
 use crate::ui::controls::{checkbox, pill, tag, Btn, BtnSize};
+use crate::ui::motion;
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{clip, clip_middle, col, icon, row, TextExt};
 
@@ -169,8 +171,10 @@ impl Shell {
                     .pb(sp(3.5))
                     .gap(sp(3.5))
                     .items_end()
-                    .child(big_number(
-                        human_size(total),
+                    .child(motion::counting_size(
+                        format!("area-total-{area:?}"),
+                        self.scan_key(),
+                        total,
                         font::DISPLAY,
                         theme::text_1(),
                     ))
@@ -654,7 +658,13 @@ impl Shell {
                                     )),
                             ),
                     )
-                    .when(expanded, |this| this.child(finding_details(finding))),
+                    .when(expanded, |this| {
+                        this.child(div().child(finding_details(finding)).with_animation(
+                            ElementId::NamedInteger("details".into(), row_index as u64),
+                            motion::animation(motion::pace::QUICK),
+                            |this, t| this.opacity(t),
+                        ))
+                    }),
             )
             .into_any_element()
     }

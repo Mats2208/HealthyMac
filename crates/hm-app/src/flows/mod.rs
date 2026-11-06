@@ -64,7 +64,7 @@ impl Shell {
         cx.notify();
         cx.spawn(async move |this, cx| {
             cx.background_executor()
-                .timer(std::time::Duration::from_secs(4))
+                .timer(std::time::Duration::from_millis(crate::pages::TOAST_MS))
                 .await;
             this.update(cx, |shell, cx| {
                 if shell

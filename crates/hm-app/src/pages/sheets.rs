@@ -1,11 +1,8 @@
 //! The modal sheets. A sheet is a column: fixed header, a body that scrolls if the window is short, and
 //! a fixed footer holding the buttons, so the way out is always on screen.
 
-use std::time::Duration;
-
 use gpui::{
-    deferred, div, ease_in_out, prelude::*, px, Animation, AnimationExt, AnyElement, Context,
-    ElementId, FontWeight, Window,
+    deferred, div, prelude::*, px, AnimationExt, AnyElement, Context, ElementId, FontWeight, Window,
 };
 use hm_core::fmt::human_size;
 use hm_core::{t, tf};
@@ -18,6 +15,7 @@ use crate::ui::charts::progress_bar;
 use crate::ui::chrome::{notice, NoticeKind};
 use crate::ui::controls::{icon_button, spinner, toggle, Btn};
 use crate::ui::label::path_label;
+use crate::ui::motion;
 use crate::ui::{clip, col, f, row, TextExt};
 
 pub(super) const SHEET_WIDTH: f32 = 580.0;
@@ -43,37 +41,98 @@ impl Shell {
             Sheet::Terminate(_) => 4,
         };
         let max_height = (f(window.viewport_size().height) - 64.0).max(320.0);
+        let closing = self.sheet_closing;
+        let opened = self.sheet_opened;
+        // The scrim fades on its own layer, so the sheet can move with its own timing above it.
+        let scrim = div()
+            .absolute()
+            .top(px(0.))
+            .left(px(0.))
+            .size_full()
+            .bg(theme::scrim())
+            .with_animation(
+                ElementId::NamedInteger(
+                    if closing { "scrim-out" } else { "scrim-in" }.into(),
+                    opened,
+                ),
+                motion::animation(if closing {
+                    motion::pace::LEAVE
+                } else {
+                    motion::pace::ENTER
+                }),
+                move |this, t| this.opacity(if closing { 1.0 - t } else { t }),
+            );
+        // Swapping one sheet for another (review, then cleaning, then the result) cross-fades the
+        // content instead of replaying the whole entrance.
+        // Not while leaving: the exit wraps the sheet in a different animation, which would
+        // restart this fade from zero and blank the sheet as it goes.
+        let body = div().flex().flex_col().min_h(px(0.)).child(body);
+        let body = if closing {
+            body.into_any_element()
+        } else {
+            body.with_animation(
+                ElementId::NamedInteger("sheet-body".into(), serial * 1_000 + opened),
+                motion::animation(motion::pace::QUICK),
+                |this, t| this.opacity(t),
+            )
+            .into_any_element()
+        };
+        let sheet = col()
+            .id("sheet")
+            .occlude()
+            .relative()
+            .w(px(SHEET_WIDTH))
+            .max_h(px(max_height))
+            .rounded(px(radius::LG))
+            .bg(theme::sheet_bg())
+            .border_1()
+            .border_color(theme::hairline_strong())
+            .shadow(theme::sheet_shadow())
+            .overflow_hidden()
+            .child(body);
+        let sheet = if closing {
+            sheet
+                .with_animation(
+                    ElementId::NamedInteger("sheet-out".into(), opened),
+                    motion::animation(motion::pace::LEAVE),
+                    |this, t| this.opacity(1.0 - t).top(px(10.0 * t)),
+                )
+                .into_any_element()
+        } else {
+            // Arrives from a little below with a slight settle, and is fully opaque well before it
+            // stops moving, so the text is readable right away.
+            sheet
+                .with_animation(
+                    ElementId::NamedInteger("sheet-in".into(), opened),
+                    motion::linear(motion::pace::ENTER + 60),
+                    |this, t| {
+                        let settle = motion::ease_out_back(t);
+                        this.opacity((t * 3.0).min(1.0))
+                            .top(px(22.0 * (1.0 - settle)))
+                    },
+                )
+                .into_any_element()
+        };
         Some(
             deferred(
                 div()
-                    .id("sheet-scrim")
+                    .id("sheet-layer")
                     .occlude()
                     .absolute()
                     .top(px(0.))
                     .left(px(0.))
                     .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .bg(theme::scrim())
+                    .child(scrim)
                     .child(
-                        col()
-                            .id("sheet")
-                            .occlude()
-                            .w(px(SHEET_WIDTH))
-                            .max_h(px(max_height))
-                            .rounded(px(radius::LG))
-                            .bg(theme::sheet_bg())
-                            .border_1()
-                            .border_color(theme::hairline_strong())
-                            .shadow(theme::sheet_shadow())
-                            .overflow_hidden()
-                            .child(body)
-                            .with_animation(
-                                ElementId::NamedInteger("sheet-in".into(), serial),
-                                Animation::new(Duration::from_millis(170)).with_easing(ease_in_out),
-                                |this, t| this.opacity(t).mt(px(10.0 * (1.0 - t))),
-                            ),
+                        div()
+                            .absolute()
+                            .top(px(0.))
+                            .left(px(0.))
+                            .size_full()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(sheet),
                     ),
             )
             .with_priority(2)

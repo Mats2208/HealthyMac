@@ -32,6 +32,8 @@ paleta categórica apagada, porque ahí el color distingue series.
 | Trece radios distintos | Formas sin sistema | Cuatro: 6 controles, 10 tarjetas y filas, 14 hojas, píldora para etiquetas |
 | 40 íconos SVG dibujados a mano | Trazo irregular, sin familia | Phosphor (MIT), peso regular |
 | Logo: corazón en un cuadrado con gradiente | No es el ícono de la app | El ícono real de la app |
+| Ícono de la app con gradiente teal-violeta y halo | El mismo neón que se retiró de la interfaz | Placa grafito, anillo en verde de estado y pulso blanco, planos (`scripts/make_icon.swift`) |
+| Elementos que aparecían de golpe | Brusco, sobre todo el fondo oscuro de las hojas | Transiciones cortas y con freno, ver Movimiento |
 | Página flotando como tarjeta sobre la ventana | Layout de panel web | Barra lateral y contenido a ras, separados por una línea, como Finder o Ajustes |
 | Sin tema claro | | Claro y oscuro; por defecto sigue al sistema |
 
@@ -71,6 +73,25 @@ Escala: 34 cifra grande, 26 título, 18, 15, 13 cuerpo, 12, 11.
 - **Etiquetas de estado:** píldora con el color de estado al 14 % y el texto en ese color.
 - **Tarjetas:** solo cuando la elevación dice algo (la tarjeta de escaneo, las métricas del monitor).
   Para agrupar se usan espacio y líneas.
+
+## Movimiento
+
+`crates/hm-app/src/ui/motion.rs`. Las transiciones dicen que algo cambió; ninguna adorna ni se repite
+en bucle. Todas frenan al final (ease-out), y con *Reducir movimiento* activado en macOS saltan
+directo al estado final.
+
+| Qué | Cómo | Duración |
+|---|---|---|
+| Hojas | el fondo se oscurece por fundido; la hoja sube 22 px con un leve asentamiento; al cerrar baja y se desvanece | 380 ms entrar, 170 ms salir |
+| Cambiar de hoja (revisar → limpiando → resultado) | solo el contenido hace un fundido cruzado | 180 ms |
+| Páginas | aparecen subiendo 8 px | 320 ms |
+| Cifras de lo recuperable | cuentan desde cero tras cada escaneo | 900 ms |
+| Barras (disco, áreas, elegido) | crecen desde la izquierda tras cada escaneo | 900 ms |
+| Barra de selección | sube desde el borde la primera vez | 320 ms |
+| Detalles de un hallazgo | fundido al desplegar | 180 ms |
+| Avisos flotantes | suben, esperan y se desvanecen antes de irse | 4 s en total |
+
+Salir siempre es más rápido que entrar: cerrar nunca se siente lento.
 
 ## Copia
 

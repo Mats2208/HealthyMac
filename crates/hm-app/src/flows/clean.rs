@@ -17,6 +17,7 @@ use hm_system::types::AppInfo;
 
 use crate::logic::selection::{is_actionable, stays_inside, Summary};
 use crate::state::{ScrollPane, Shell};
+use crate::ui::motion;
 
 // Only one sheet exists at a time, inside an `Option`, so boxing would gain nothing.
 #[allow(clippy::large_enum_variant)]
@@ -122,7 +123,7 @@ impl Shell {
             .collect();
         self.toast_serial += 1;
         let serial = self.toast_serial;
-        self.sheet = Some(Sheet::Review(ReviewSheet {
+        self.open_sheet(Sheet::Review(ReviewSheet {
             title: title.into(),
             confirm_label: confirm_label.into(),
             items,
@@ -244,8 +245,46 @@ impl Shell {
         if matches!(self.sheet, Some(Sheet::Cleaning(_))) {
             return;
         }
-        self.sheet = None;
+        self.dismiss_sheet(cx);
+    }
+
+    /// Shows `sheet`. Replacing an open one swaps its content in place; opening from nothing plays
+    /// the full entrance.
+    pub fn open_sheet(&mut self, sheet: Sheet) {
+        if self.sheet.is_none() || self.sheet_closing {
+            self.sheet_opened += 1;
+        }
+        self.sheet_closing = false;
+        self.sheet = Some(sheet);
+    }
+
+    /// Plays the sheet out, then removes it.
+    pub fn dismiss_sheet(&mut self, cx: &mut Context<Self>) {
+        if self.sheet.is_none() || self.sheet_closing {
+            return;
+        }
+        if motion::reduced() {
+            self.sheet = None;
+            cx.notify();
+            return;
+        }
+        self.sheet_closing = true;
+        let opened = self.sheet_opened;
         cx.notify();
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(Duration::from_millis(motion::pace::LEAVE + 20))
+                .await;
+            this.update(cx, |shell, cx| {
+                if shell.sheet_closing && shell.sheet_opened == opened {
+                    shell.sheet = None;
+                    shell.sheet_closing = false;
+                    cx.notify();
+                }
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// Runs what the review sheet lists. Refuses if a required acknowledgement is missing.
@@ -280,7 +319,7 @@ impl Shell {
             .collect();
 
         let cancel = CancelToken::new();
-        self.sheet = Some(Sheet::Cleaning(CleaningSheet {
+        self.open_sheet(Sheet::Cleaning(CleaningSheet {
             titles: titles.clone(),
             total: attempted,
             index: 0,
@@ -429,7 +468,7 @@ impl Shell {
         let was_cancelling =
             matches!(&self.sheet, Some(Sheet::Cleaning(sheet)) if sheet.cancelling);
         let cancelled = was_cancelling || report.outcomes.len() < attempted;
-        self.sheet = Some(Sheet::Result(ResultSheet {
+        self.open_sheet(Sheet::Result(ResultSheet {
             report,
             titles,
             attempted,
@@ -505,7 +544,7 @@ impl Shell {
     // ---- Terminate a process, from the Ports page ------------------------------------------------
 
     pub fn open_terminate(&mut self, port: ListeningPort, cx: &mut Context<Self>) {
-        self.sheet = Some(Sheet::Terminate(TerminateSheet {
+        self.open_sheet(Sheet::Terminate(TerminateSheet {
             port,
             force: false,
             error: None,
@@ -529,7 +568,7 @@ impl Shell {
         let force = sheet.force;
         let name = sheet.port.process_name.clone();
         if !self.mode.may_signal_processes() {
-            self.sheet = None;
+            self.dismiss_sheet(cx);
             self.show_toast(
                 tf!(
                     "Simulación: no se ha enviado ninguna señal a {name}.",
@@ -545,7 +584,7 @@ impl Shell {
             move || hm_dev::ports::terminate(pid, force),
             move |shell, result, cx| match result {
                 Ok(()) => {
-                    shell.sheet = None;
+                    shell.dismiss_sheet(cx);
                     shell.show_toast(
                         tf!(
                             "{name} ha recibido la señal.",

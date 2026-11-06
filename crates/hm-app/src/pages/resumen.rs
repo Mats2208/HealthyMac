@@ -1,8 +1,8 @@
 //! The first thing you see: how your Mac is doing and what you could do about it.
 
 use gpui::{
-    div, prelude::*, px, AnyElement, Background, Context, Div, FontWeight, SharedString, Stateful,
-    Window,
+    div, prelude::*, px, relative, AnimationExt, AnyElement, Background, Context, Div, ElementId,
+    FontWeight, SharedString, Stateful, Window,
 };
 use hm_core::fmt::human_size;
 use hm_core::{t, tf, Area};
@@ -14,9 +14,10 @@ use crate::assets::Icon;
 use crate::logic::selection::{is_actionable, Summary};
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp, GUTTER};
-use crate::ui::charts::{health_ring, indeterminate_bar, progress_bar, stack_bar};
+use crate::ui::charts::{growing_bar, health_ring, indeterminate_bar, progress_bar, stack_bar};
 use crate::ui::chrome::{action_bar, big_number, card, eyebrow, notice, NoticeKind};
 use crate::ui::controls::{dot, Btn, BtnSize};
+use crate::ui::motion;
 use crate::ui::{clip, col, icon, row, TextExt};
 
 impl Shell {
@@ -219,12 +220,15 @@ impl Shell {
             let certain = hm_system::health::reclaimable_bytes(&self.findings);
             let to_review = self.reclaimable_total().saturating_sub(certain);
             let chosen = self.selection.summarize(&self.findings);
+            let scan_key = self.scan_key();
             (
                 col()
                     .gap(sp(1.))
                     .child(eyebrow(t!("Puedes recuperar", "You can free up")))
-                    .child(big_number(
-                        human_size(certain),
+                    .child(motion::counting_size(
+                        "recover",
+                        scan_key,
+                        certain,
                         font::DISPLAY,
                         theme::text_1(),
                     ))
@@ -235,7 +239,9 @@ impl Shell {
                             col()
                                 .mt(sp(1.))
                                 .gap(sp(1.5))
-                                .child(progress_bar(
+                                .child(growing_bar(
+                                    "chosen",
+                                    scan_key,
                                     chosen.bytes as f32 / certain as f32,
                                     theme::primary(),
                                     4.0,
@@ -378,7 +384,17 @@ impl Shell {
                     human_size(disk.total)
                 ),
             ))
-            .child(stack_bar(&segments, 12.0))
+            // The bar grows from the left each time a scan redraws it.
+            .child(
+                div()
+                    .w_full()
+                    .child(stack_bar(&segments, 12.0))
+                    .with_animation(
+                        ElementId::NamedInteger("disk-bar".into(), self.scan_key()),
+                        motion::animation(motion::pace::FILL),
+                        |this, t| this.w(relative(t.max(0.02))),
+                    ),
+            )
             .child(
                 row()
                     .flex_wrap()
@@ -479,6 +495,7 @@ impl Shell {
     ) -> impl IntoElement {
         let label = tf!("Limpiar {}", "Clean {}", summary.total_label());
         let at_least = summary.is_lower_bound();
+        // Rises from the bottom edge when something is first selected.
         action_bar(
             row()
                 .gap(sp(2.))
@@ -514,6 +531,11 @@ impl Shell {
                 "clean-selection",
                 cx.listener(move |this, _, _, cx| this.review_selection(area, cx)),
             ),
+        )
+        .with_animation(
+            "selection-bar",
+            motion::animation(motion::pace::ENTER),
+            |this, t| this.opacity(t).relative().top(px(18.0 * (1.0 - t))),
         )
     }
 }

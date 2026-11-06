@@ -308,6 +308,21 @@ pub fn progress_bar(fraction: f32, color: Hsla, height: f32) -> Div {
         })
 }
 
+/// A [`progress_bar`] that fills from empty when it first appears. `key` restarts the fill.
+pub fn growing_bar(
+    id: impl Into<SharedString>,
+    key: u64,
+    fraction: f32,
+    color: Hsla,
+    height: f32,
+) -> impl IntoElement {
+    div().w_full().with_animation(
+        ElementId::NamedInteger(id.into(), key),
+        crate::ui::motion::animation(crate::ui::motion::pace::FILL),
+        move |_, t| progress_bar(fraction * t, color, height),
+    )
+}
+
 /// An indeterminate bar, for when there is no honest way to say how far along something is.
 pub fn indeterminate_bar(id: impl Into<ElementId>, color: Hsla, height: f32) -> Div {
     let corner = px(height / 2.0);

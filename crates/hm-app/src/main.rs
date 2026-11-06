@@ -92,6 +92,7 @@ pub fn menus() -> Vec<Menu> {
 
 fn main() {
     hm_core::threads::configure_global_pool();
+    ui::motion::read_system_preference();
     let mode = RunMode::from_env();
     // Read the config before anything is drawn, so the first frame and the menu bar are already in
     // the right language.
@@ -176,6 +177,8 @@ fn main() {
                                 disk: DiskState::default(),
                                 settings: SettingsState::default(),
                                 sheet: None,
+                                sheet_closing: false,
+                                sheet_opened: 0,
                                 toast: None,
                                 toast_serial: 0,
                                 titlebar_pressed: false,

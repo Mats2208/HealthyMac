@@ -18,17 +18,19 @@ mod sheets;
 mod sidebar;
 mod startup;
 
-use std::time::Duration;
-
 use gpui::{
-    div, ease_in_out, prelude::*, px, Animation, AnimationExt, AnyElement, Context, Div, ElementId,
-    FontWeight, KeyDownEvent, MouseButton, Render, Stateful, Window,
+    div, prelude::*, px, AnimationExt, AnyElement, Context, Div, ElementId, FontWeight,
+    KeyDownEvent, MouseButton, Render, Stateful, Window,
 };
 
 use crate::state::{Page, ScrollPane, Shell};
 use crate::theme::{self, font, radius, sp};
+use crate::ui::motion;
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{f, TextExt};
+
+/// How long a toast stays up. `show_toast` removes it after the same time.
+pub const TOAST_MS: u64 = 4_000;
 
 /// Opens the Full Disk Access list in System Settings.
 pub const FULL_DISK_ACCESS_URL: &str =
@@ -78,10 +80,11 @@ impl Render for Shell {
                             .min_h(px(0.))
                             .flex()
                             .flex_col()
+                            // A new page fades up into place, quick enough that switching never waits.
                             .with_animation(
                                 ElementId::NamedInteger("page".into(), self.page.serial()),
-                                Animation::new(Duration::from_millis(160)).with_easing(ease_in_out),
-                                |this, t| this.opacity(0.2 + 0.8 * t),
+                                motion::animation(motion::pace::ENTER),
+                                |this, t| this.opacity(t).relative().top(px(8.0 * (1.0 - t))),
                             )
                             .map_element(|this| this.child(page)),
                     )
@@ -191,10 +194,21 @@ impl Shell {
                         .fs(font::BODY)
                         .font_weight(FontWeight::MEDIUM)
                         .child(toast.message.clone())
+                        // One animation for the toast's whole life: it rises in, waits, and fades out
+                        // just before the timer in `show_toast` removes it.
                         .with_animation(
                             ElementId::NamedInteger("toast".into(), toast.serial),
-                            Animation::new(Duration::from_millis(180)).with_easing(ease_in_out),
-                            |this, t| this.opacity(t).mb(px(8.0 * (1.0 - t))),
+                            motion::linear(TOAST_MS),
+                            |this, t| {
+                                if motion::reduced() {
+                                    return this;
+                                }
+                                let ms = t * TOAST_MS as f32;
+                                let arrive = motion::ease_out((ms / 260.0).min(1.0));
+                                let leave = ((TOAST_MS as f32 - ms) / 220.0).clamp(0.0, 1.0);
+                                this.opacity(arrive.min(leave))
+                                    .mb(px(10.0 * (1.0 - arrive)))
+                            },
                         ),
                 )
                 .into_any_element(),
