@@ -99,10 +99,13 @@ impl Config {
     /// Loads the config, returning defaults when the file does not exist.
     pub fn load(path: &Path) -> Result<Self> {
         match fs::read(path) {
-            Ok(bytes) => serde_json::from_slice(&bytes)
-                .with_context(|| format!("config inválida: {}", path.display())),
+            Ok(bytes) => serde_json::from_slice(&bytes).with_context(|| {
+                crate::tf!("config inválida: {}", "invalid config: {}", path.display())
+            }),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(err) => Err(err).with_context(|| format!("no se pudo leer {}", path.display())),
+            Err(err) => Err(err).with_context(|| {
+                crate::tf!("no se pudo leer {}", "could not read {}", path.display())
+            }),
         }
     }
 
