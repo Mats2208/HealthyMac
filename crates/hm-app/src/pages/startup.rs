@@ -28,9 +28,14 @@ impl Shell {
         let orphans = items.map_or(0, |items| items.iter().filter(|item| item.orphaned).count());
         let subtitle = if items.is_none() {
             "Lo que se pone en marcha sin que se lo pidas.".to_string()
-        } else if orphans > 0 {
+        } else if orphans == 1 {
             format!(
-                "{}. {} apunta a un programa que ya no existe.",
+                "{}. 1 huérfano apunta a un programa que ya no existe.",
+                plural(count, "elemento", "elementos"),
+            )
+        } else if orphans > 1 {
+            format!(
+                "{}. {} apuntan a programas que ya no existen.",
                 plural(count, "elemento", "elementos"),
                 plural(orphans, "huérfano", "huérfanos")
             )
