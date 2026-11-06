@@ -1,7 +1,6 @@
 //! The result of a clean, honest about the difference between freed and merely moved to the Trash.
 
 use gpui::{div, prelude::*, px, AnyElement, Context, ElementId, Hsla, IntoElement};
-use hm_core::fmt::human_size;
 use hm_core::{t, tf, CleanStatus};
 
 use super::plural;
@@ -11,8 +10,9 @@ use crate::flows::clean::ResultSheet;
 use crate::logic::errors::{blocked_by_app_management, friendly_error, APP_MANAGEMENT_URL};
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp};
-use crate::ui::chrome::{big_number, eyebrow, notice, NoticeKind};
+use crate::ui::chrome::{eyebrow, notice, NoticeKind};
 use crate::ui::controls::{pill, Btn, BtnSize};
+use crate::ui::motion;
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{clip, col, row, TextExt};
 
@@ -302,7 +302,14 @@ fn result_figure(
         .border_1()
         .border_color(theme::hairline())
         .child(eyebrow(label))
-        .child(big_number(human_size(bytes), font::TITLE, color))
+        // The result is read once, so its numbers may count up once as it appears.
+        .child(motion::counting_size(
+            format!("result-{label}"),
+            0,
+            bytes,
+            font::TITLE,
+            color,
+        ))
         .child(
             div()
                 .mt(sp(0.5))

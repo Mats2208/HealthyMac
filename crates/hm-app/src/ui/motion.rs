@@ -29,8 +29,12 @@ pub fn reduced() -> bool {
 pub mod pace {
     /// Hover-sized changes: a row's details, a body swapping inside a sheet.
     pub const QUICK: u64 = 180;
-    /// Something entering the screen: a page, a sheet, a bar.
-    pub const ENTER: u64 = 320;
+    /// One step of the cleaning progress: the number, the bar and the list move together.
+    pub const TICK: u64 = 420;
+    /// A sheet opening over the page.
+    pub const OPEN: u64 = 220;
+    /// The scrim behind a sheet.
+    pub const ENTER: u64 = 260;
     /// Leaving is quicker than arriving, so dismissing never feels sluggish.
     pub const LEAVE: u64 = 170;
     /// Numbers counting up and bars filling.
@@ -43,17 +47,15 @@ pub fn animation(ms: u64) -> Animation {
     Animation::new(Duration::from_millis(ms)).with_easing(ease_out)
 }
 
+/// Like [`animation`], with another easing curve.
+pub fn animation_eased(ms: u64, easing: fn(f32) -> f32) -> Animation {
+    let ms = if reduced() { 1 } else { ms };
+    Animation::new(Duration::from_millis(ms)).with_easing(easing)
+}
+
 /// Quartic ease-out: most of the movement happens early, then it settles.
 pub fn ease_out(t: f32) -> f32 {
     1.0 - (1.0 - t.clamp(0.0, 1.0)).powi(4)
-}
-
-/// Ease-out that overshoots a little and settles back, for things that arrive with some weight,
-/// like a sheet. `t` here is linear; apply it inside an animation that uses `linear`.
-pub fn ease_out_back(t: f32) -> f32 {
-    const S: f32 = 1.2;
-    let t = t.clamp(0.0, 1.0) - 1.0;
-    1.0 + (S + 1.0) * t.powi(3) + S * t.powi(2)
 }
 
 /// A linear animation, for closures that shape `t` themselves.

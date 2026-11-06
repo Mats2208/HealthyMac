@@ -54,8 +54,21 @@ pub struct CleaningSheet {
     pub index: usize,
     pub current: String,
     pub bytes_done: u64,
+    /// What `bytes_done` was before the last item finished, so the number can glide to the new one.
+    pub bytes_before: u64,
+    /// What the selection adds up to, for "of N".
+    pub expected: u64,
+    /// Finished items, oldest first, for the running list.
+    pub done: Vec<DoneItem>,
     pub cancel: CancelToken,
     pub cancelling: bool,
+}
+
+/// One finished item in the cleaning sheet's running list.
+pub struct DoneItem {
+    pub title: String,
+    pub status: CleanStatus,
+    pub bytes: u64,
 }
 
 pub struct ResultSheet {
@@ -325,6 +338,9 @@ impl Shell {
             index: 0,
             current: items.first().map(|f| f.title.clone()).unwrap_or_default(),
             bytes_done: 0,
+            bytes_before: 0,
+            expected: items.iter().map(|f| f.size).fold(0, u64::saturating_add),
+            done: Vec::new(),
             cancel: cancel.clone(),
             cancelling: false,
         }));
@@ -427,7 +443,19 @@ impl Shell {
                 }
             }
             CleanEvent::Finished(outcome) => {
-                sheet.bytes_done += outcome.freed_bytes + outcome.trashed_bytes;
+                let bytes = outcome.freed_bytes + outcome.trashed_bytes;
+                sheet.bytes_before = sheet.bytes_done;
+                sheet.bytes_done += bytes;
+                let title = sheet
+                    .titles
+                    .get(&outcome.finding_id)
+                    .cloned()
+                    .unwrap_or_else(|| outcome.finding_id.clone());
+                sheet.done.push(DoneItem {
+                    title,
+                    status: outcome.status,
+                    bytes,
+                });
             }
         }
     }

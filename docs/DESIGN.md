@@ -76,22 +76,34 @@ Escala: 34 cifra grande, 26 título, 18, 15, 13 cuerpo, 12, 11.
 
 ## Movimiento
 
-`crates/hm-app/src/ui/motion.rs`. Las transiciones dicen que algo cambió; ninguna adorna ni se repite
-en bucle. Todas frenan al final (ease-out), y con *Reducir movimiento* activado en macOS saltan
-directo al estado final.
+`crates/hm-app/src/ui/motion.rs`. Es una herramienta de trabajo: el movimiento solo da feedback y
+continuidad, y lo rutinario no se hace esperar (las guías `animate` y `mode-operate` de
+[impeccable](https://github.com/pbakaus/impeccable) dicen lo mismo). Todo frena al final y, con
+*Reducir movimiento* activado en macOS, salta directo al estado final.
+
+**Un solo momento con movimiento propio: la limpieza.** Mientras corre, la cifra procesada se desliza
+hasta cada nuevo total, la barra avanza entre pasos y los elementos terminados suben por una lista
+corta con su resultado (✓, omitido, error). Al terminar, las dos cifras del resultado cuentan una vez.
 
 | Qué | Cómo | Duración |
 |---|---|---|
-| Hojas | el fondo se oscurece por fundido; la hoja sube 22 px con un leve asentamiento; al cerrar baja y se desvanece | 380 ms entrar, 170 ms salir |
-| Cambiar de hoja (revisar → limpiando → resultado) | solo el contenido hace un fundido cruzado | 180 ms |
-| Páginas | aparecen subiendo 8 px | 320 ms |
-| Cifras de lo recuperable | cuentan desde cero tras cada escaneo | 900 ms |
-| Barras (disco, áreas, elegido) | crecen desde la izquierda tras cada escaneo | 900 ms |
-| Barra de selección | sube desde el borde la primera vez | 320 ms |
+| Cambiar de página | fundido corto, sin desplazamiento | 160 ms |
+| Abrir una hoja | el fondo se oscurece; la hoja aparece subiendo 8 px, sin rebote | 220 ms |
+| Cerrar una hoja | baja y se desvanece antes de quitarse | 170 ms |
+| Pasar de una hoja a otra | solo el contenido hace fundido | 180 ms |
+| Cada paso de la limpieza | cifra, barra y lista se mueven juntas | 420 ms |
 | Detalles de un hallazgo | fundido al desplegar | 180 ms |
-| Avisos flotantes | suben, esperan y se desvanecen antes de irse | 4 s en total |
+| Avisos flotantes | suben, esperan y se desvanecen | 4 s en total |
 
-Salir siempre es más rápido que entrar: cerrar nunca se siente lento.
+Lo que se probó y se quitó: cifras que contaban desde cero y barras que crecían cada vez que se abría
+una página. Se repetían en cada visita y hacían saltar la interfaz.
+
+## Almacenamiento
+
+El Resumen muestra el disco como lo hace Ajustes del Sistema > Almacenamiento: la barra y, debajo, una
+fila por área con su color de serie, qué guarda, cuánto ocupa y cuánto hay elegido, más lo demás y lo
+libre. Reemplaza a la leyenda de la barra y a las cinco tarjetas por área, que repetían los mismos
+números (`distill`).
 
 ## Copia
 

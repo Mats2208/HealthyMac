@@ -19,8 +19,8 @@ mod sidebar;
 mod startup;
 
 use gpui::{
-    div, prelude::*, px, AnimationExt, AnyElement, Context, Div, ElementId, FontWeight,
-    KeyDownEvent, MouseButton, Render, Stateful, Window,
+    div, ease_in_out, prelude::*, px, AnimationExt, AnyElement, Context, Div, ElementId,
+    FontWeight, KeyDownEvent, MouseButton, Render, Stateful, Window,
 };
 
 use crate::state::{Page, ScrollPane, Shell};
@@ -80,11 +80,12 @@ impl Render for Shell {
                             .min_h(px(0.))
                             .flex()
                             .flex_col()
-                            // A new page fades up into place, quick enough that switching never waits.
+                            // Switching pages is routine, so it only softens the swap: a short fade,
+                            // no movement, the same as before the redesign.
                             .with_animation(
                                 ElementId::NamedInteger("page".into(), self.page.serial()),
-                                motion::animation(motion::pace::ENTER),
-                                |this, t| this.opacity(t).relative().top(px(8.0 * (1.0 - t))),
+                                motion::animation_eased(160, ease_in_out),
+                                |this, t| this.opacity(0.2 + 0.8 * t),
                             )
                             .map_element(|this| this.child(page)),
                     )

@@ -1,8 +1,7 @@
-//! The dashboard's lower half: a tile per area, and every scanner's progress while one runs.
+//! The dashboard's storage list, a row per area under the disk bar, and every scanner's progress
+//! while one runs.
 
-use gpui::{
-    div, prelude::*, px, relative, AnimationExt, AnyElement, Context, ElementId, SharedString,
-};
+use gpui::{div, prelude::*, px, AnyElement, Context, FontWeight, SharedString};
 use hm_core::fmt::human_size;
 use hm_core::{t, tf, Area};
 
@@ -11,9 +10,7 @@ use crate::assets::Icon;
 use crate::logic::selection::is_actionable;
 use crate::state::{AppsTab, Page, ScannerStatus, Shell};
 use crate::theme::{self, font, radius, sp};
-use crate::ui::chrome::big_number;
 use crate::ui::controls::{dot, spinner};
-use crate::ui::motion;
 use crate::ui::{clip, col, icon, row, TextExt};
 
 /// The areas in the order they appear on the dashboard.
@@ -26,9 +23,45 @@ pub const AREAS: [Area; 5] = [
 ];
 
 impl Shell {
-    pub(super) fn area_tile(&self, area: Area, cx: &mut Context<Self>) -> impl IntoElement {
-        let accent = theme::area_color(area);
-        let scan_key = self.scan_key();
+    /// The disk's breakdown as a list, the way System Settings > Storage shows it: a row per area,
+    /// keyed to the bar above by its colour, then what else is in use and what is free. It replaces
+    /// both the bar's legend and the old tiles, which showed the same numbers twice.
+    ///
+    /// `rest` is the "everything else" label and size, plus free space, when the disk is known.
+    pub(super) fn storage_list(
+        &self,
+        rest: Option<(&'static str, u64, u64)>,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let mut rows: Vec<AnyElement> = AREAS
+            .iter()
+            .map(|&area| self.storage_row(area, cx).into_any_element())
+            .collect();
+        if let Some((label, other, free)) = rest {
+            rows.push(plain_row(theme::surface_4(), label, human_size(other)));
+            rows.push(plain_row(
+                theme::surface_2(),
+                t!("Libre", "Free"),
+                human_size(free),
+            ));
+        }
+        let count = rows.len();
+        col()
+            .w_full()
+            .rounded(px(radius::MD))
+            .border_1()
+            .border_color(theme::hairline())
+            .overflow_hidden()
+            .children(rows.into_iter().enumerate().map(|(index, row_el)| {
+                div()
+                    .when(index + 1 < count, |this| {
+                        this.border_b_1().border_color(theme::hairline())
+                    })
+                    .child(row_el)
+            }))
+    }
+
+    fn storage_row(&self, area: Area, cx: &mut Context<Self>) -> impl IntoElement {
         let scanned = self.scan.finished_once;
         let members: Vec<_> = self
             .findings
@@ -37,30 +70,14 @@ impl Shell {
             .collect();
         let total: u64 = members.iter().map(|f| f.size).fold(0, u64::saturating_add);
         let selected = self.selection.summarize(members.iter().copied());
-        let which = match area {
-            Area::System => Icon::Sparkle,
-            Area::Developer => Icon::Code,
-            Area::LocalAi => Icon::Nodes,
-            Area::Apps => Icon::Grid,
-            Area::Files => Icon::File,
-        };
-        col()
-            .id(SharedString::from(format!("tile-{area:?}")))
-            .flex_1()
-            .min_w(px(0.))
-            .gap(sp(2.5))
-            .p(sp(3.5))
-            .rounded(px(radius::LG))
-            .bg(theme::surface_1())
-            .border_1()
-            .border_color(theme::hairline())
+        row()
+            .id(SharedString::from(format!("storage-{area:?}")))
+            .h(px(54.))
+            .px(sp(3.5))
+            .gap(sp(3.))
             .cursor_pointer()
-            .hover(|style| {
-                style
-                    .bg(theme::surface_2())
-                    .border_color(theme::hairline_strong())
-            })
-            .active(|style| style.opacity(0.8))
+            .hover(|style| style.bg(theme::surface_1()))
+            .active(|style| style.bg(theme::surface_2()))
             .on_click(cx.listener(move |this, _, _, cx| {
                 if area == Area::Apps {
                     this.apps.tab = AppsTab::Leftovers;
@@ -69,44 +86,47 @@ impl Shell {
                     this.navigate(Page::Area(area), cx);
                 }
             }))
+            .child(dot(theme::area_color(area), 9.0))
             .child(
-                row()
-                    .gap(px(7.))
-                    .child(icon(which, 15.0, theme::text_2()))
+                col()
+                    .flex_1()
+                    .min_w(px(0.))
+                    .child(
+                        div()
+                            .fs(font::BODY)
+                            .font_weight(FontWeight::MEDIUM)
+                            .child(area.label()),
+                    )
                     .child(
                         clip()
                             .fs(font::CAPTION)
-                            .text_color(theme::text_2())
-                            .child(area.label()),
+                            .text_color(theme::text_3())
+                            .child(tile_blurb(area)),
                     ),
             )
-            .when(!scanned, |this| {
-                this.child(
-                    div()
-                        .fs(font::CAPTION)
-                        .text_color(theme::text_3())
-                        .child(tile_blurb(area)),
-                )
-            })
             .when(scanned, |this| {
                 this.child(
                     col()
-                        .gap(sp(0.5))
-                        .child(if total == 0 {
-                            big_number(t!("Nada", "Nothing"), font::HEADLINE + 2.0, theme::text_3())
-                                .into_any_element()
-                        } else {
-                            motion::counting_size(
-                                format!("tile-{area:?}"),
-                                scan_key,
-                                total,
-                                font::HEADLINE + 2.0,
-                                theme::text_1(),
-                            )
-                            .into_any_element()
-                        })
+                        .flex_none()
+                        .items_end()
                         .child(
-                            clip()
+                            div()
+                                .fs(font::BODY)
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .tabular()
+                                .text_color(if total == 0 {
+                                    theme::text_3()
+                                } else {
+                                    theme::text_1()
+                                })
+                                .child(if total == 0 {
+                                    t!("Nada", "Nothing").to_string()
+                                } else {
+                                    human_size(total)
+                                }),
+                        )
+                        .child(
+                            div()
                                 .fs(font::MICRO)
                                 .tabular()
                                 .text_color(theme::text_3())
@@ -119,25 +139,8 @@ impl Shell {
                                 }),
                         ),
                 )
-                .child(
-                    div()
-                        .h(px(3.))
-                        .w_full()
-                        .rounded(px(2.))
-                        .bg(theme::surface_2())
-                        .when(total > 0 && selected.bytes > 0, |this| {
-                            let fraction = (selected.bytes as f32 / total as f32).min(1.0);
-                            this.child(div().h_full().rounded(px(2.)).bg(accent).with_animation(
-                                ElementId::NamedInteger(
-                                    format!("tile-bar-{area:?}").into(),
-                                    scan_key,
-                                ),
-                                motion::animation(motion::pace::FILL),
-                                move |this, t| this.w(relative(fraction * t)),
-                            ))
-                        }),
-                )
             })
+            .child(icon(Icon::ChevronRight, 13.0, theme::text_3()))
     }
 
     /// Every scanner and what it is doing right now, by area.
@@ -251,4 +254,38 @@ fn scanner_line(id: &'static str, name: &'static str, status: ScannerStatus) -> 
                 .text_color(theme::text_2())
                 .child(trailing),
         )
+}
+
+/// A row with nothing behind it to open: what else is in use, and free space.
+fn plain_row(color: gpui::Hsla, label: &'static str, value: String) -> AnyElement {
+    row()
+        .h(px(40.))
+        .px(sp(3.5))
+        .gap(sp(3.))
+        .child(
+            div()
+                .flex_none()
+                .size(px(9.))
+                .rounded_full()
+                .bg(color)
+                .border_1()
+                .border_color(theme::hairline_strong()),
+        )
+        .child(
+            div()
+                .flex_1()
+                .fs(font::BODY)
+                .text_color(theme::text_2())
+                .child(label),
+        )
+        .child(
+            div()
+                .flex_none()
+                .mr(px(25.))
+                .fs(font::BODY)
+                .tabular()
+                .text_color(theme::text_2())
+                .child(value),
+        )
+        .into_any_element()
 }

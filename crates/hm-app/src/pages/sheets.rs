@@ -5,18 +5,18 @@ use gpui::{
     deferred, div, prelude::*, px, AnimationExt, AnyElement, Context, ElementId, FontWeight, Window,
 };
 use hm_core::fmt::human_size;
-use hm_core::{t, tf};
+use hm_core::{t, tf, CleanStatus};
 
 use crate::assets::Icon;
-use crate::flows::clean::Sheet;
+use crate::flows::clean::{DoneItem, Sheet};
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp};
 use crate::ui::charts::progress_bar;
-use crate::ui::chrome::{notice, NoticeKind};
+use crate::ui::chrome::{big_number, notice, NoticeKind};
 use crate::ui::controls::{icon_button, spinner, toggle, Btn};
 use crate::ui::label::path_label;
 use crate::ui::motion;
-use crate::ui::{clip, col, f, row, TextExt};
+use crate::ui::{clip, col, f, icon, row, TextExt};
 
 pub(super) const SHEET_WIDTH: f32 = 580.0;
 /// Rows to lay out in a sheet. Anything past this is summed up in one line instead.
@@ -99,17 +99,13 @@ impl Shell {
                 )
                 .into_any_element()
         } else {
-            // Arrives from a little below with a slight settle, and is fully opaque well before it
-            // stops moving, so the text is readable right away.
+            // Fades in and settles 8 px, with no overshoot: the sheet is a step in a task, not a
+            // show. The work inside it is where the motion goes.
             sheet
                 .with_animation(
                     ElementId::NamedInteger("sheet-in".into(), opened),
-                    motion::linear(motion::pace::ENTER + 60),
-                    |this, t| {
-                        let settle = motion::ease_out_back(t);
-                        this.opacity((t * 3.0).min(1.0))
-                            .top(px(22.0 * (1.0 - settle)))
-                    },
+                    motion::animation(motion::pace::OPEN),
+                    |this, t| this.opacity(t).top(px(8.0 * (1.0 - t))),
                 )
                 .into_any_element()
         };
@@ -140,15 +136,45 @@ impl Shell {
         )
     }
 
+    /// The one moment in the app with motion of its own: the number processed glides to each new
+    /// total, the bar slides between steps, and finished items scroll up through a short list with
+    /// their outcome, like a ticker. Everything else in the app stays still.
     fn render_cleaning(&self, cx: &mut Context<Self>) -> AnyElement {
         let Some(Sheet::Cleaning(sheet)) = &self.sheet else {
             return div().into_any_element();
         };
-        let fraction = if sheet.total > 0 {
-            sheet.index as f32 / sheet.total as f32
-        } else {
-            0.0
-        };
+        let total = sheet.total.max(1) as f32;
+        let finished = sheet.done.len();
+        let step = finished as u64;
+        let fraction = finished as f32 / total;
+        let fraction_before = finished.saturating_sub(1) as f32 / total;
+        let (bytes_before, bytes_now) = (sheet.bytes_before, sheet.bytes_done);
+        let simulated = self.mode.is_simulated();
+
+        let number = div().with_animation(
+            ElementId::NamedInteger("clean-bytes".into(), step),
+            motion::animation(motion::pace::TICK),
+            move |_, t| {
+                let shown = bytes_before as f64 + (bytes_now - bytes_before) as f64 * t as f64;
+                div().child(big_number(
+                    human_size(shown.round() as u64),
+                    font::DISPLAY,
+                    theme::text_1(),
+                ))
+            },
+        );
+        let bar = div().w_full().with_animation(
+            ElementId::NamedInteger("clean-bar".into(), step),
+            motion::animation(motion::pace::TICK),
+            move |_, t| {
+                progress_bar(
+                    fraction_before + (fraction - fraction_before) * t,
+                    theme::primary(),
+                    6.0,
+                )
+            },
+        );
+
         col()
             .p(sp(6.))
             .gap(sp(4.))
@@ -160,60 +186,63 @@ impl Shell {
                         div()
                             .fs(font::HEADLINE)
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(if self.mode.is_simulated() {
+                            .child(if simulated {
                                 t!("Simulando…", "Simulating…")
                             } else {
                                 t!("Limpiando…", "Cleaning…")
                             }),
                     ),
             )
-            .child(progress_bar(fraction, theme::primary(), 8.0))
             .child(
-                row()
-                    .justify_between()
-                    .gap(sp(3.))
+                col()
+                    .gap(sp(2.5))
+                    .child(row().items_end().gap(sp(2.5)).child(number).when(
+                        sheet.expected > 0,
+                        |this| {
+                            this.child(
+                                div()
+                                    .pb(px(5.))
+                                    .fs(font::CAPTION)
+                                    .tabular()
+                                    .text_color(theme::text_2())
+                                    .child(tf!(
+                                        "de {} elegidos",
+                                        "of {} selected",
+                                        human_size(sheet.expected)
+                                    )),
+                            )
+                        },
+                    ))
+                    .child(bar)
                     .child(
-                        clip()
-                            .flex_1()
-                            .fs(font::BODY)
-                            .text_color(theme::text_2())
-                            .child(sheet.current.clone()),
-                    )
-                    .child(
-                        div()
-                            .flex_none()
-                            .fs(font::BODY)
-                            .tabular()
-                            .text_color(theme::text_2())
-                            .child(tf!("{} de {}", "{} of {}", sheet.index + 1, sheet.total)),
+                        row()
+                            .justify_between()
+                            .gap(sp(3.))
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_3())
+                            .child(clip().flex_1().child(sheet.current.clone()))
+                            .child(div().flex_none().tabular().child(tf!(
+                                "{} de {}",
+                                "{} of {}",
+                                (sheet.index + 1).min(sheet.total),
+                                sheet.total
+                            ))),
                     ),
             )
+            .child(done_ticker(&sheet.done))
             .child(
-                row()
-                    .justify_between()
-                    .child(
-                        div()
-                            .fs(font::CAPTION)
-                            .tabular()
-                            .text_color(theme::text_3())
-                            .child(tf!(
-                                "{} procesados",
-                                "{} processed",
-                                human_size(sheet.bytes_done)
-                            )),
-                    )
-                    .child(
-                        Btn::secondary(if sheet.cancelling {
-                            t!("Terminando el actual…", "Finishing the current one…")
-                        } else {
-                            t!("Cancelar", "Cancel")
-                        })
-                        .disabled(sheet.cancelling)
-                        .build(
-                            "clean-cancel",
-                            cx.listener(|this, _, _, cx| this.cancel_clean(cx)),
-                        ),
+                row().justify_end().child(
+                    Btn::secondary(if sheet.cancelling {
+                        t!("Terminando el actual…", "Finishing the current one…")
+                    } else {
+                        t!("Cancelar", "Cancel")
+                    })
+                    .disabled(sheet.cancelling)
+                    .build(
+                        "clean-cancel",
+                        cx.listener(|this, _, _, cx| this.cancel_clean(cx)),
                     ),
+                ),
             )
             .into_any_element()
     }
@@ -360,4 +389,81 @@ pub(super) fn sheet_header(
             theme::text_3(),
             cx.listener(|this, _, _, cx| this.close_sheet(cx)),
         ))
+}
+
+const TICKER_ROW: f32 = 28.0;
+const TICKER_ROWS: usize = 4;
+
+/// The last few finished items, newest at the bottom. When one arrives the list slides up a row,
+/// so the eye follows the work instead of seeing rows jump.
+fn done_ticker(done: &[DoneItem]) -> impl IntoElement {
+    let shown = done.len().min(TICKER_ROWS + 1);
+    let first = done.len() - shown;
+    let sliding = done.len() > TICKER_ROWS;
+    let rows: Vec<AnyElement> = done[first..]
+        .iter()
+        .enumerate()
+        .map(|(offset, item)| {
+            let (which, color) = match item.status {
+                CleanStatus::Done | CleanStatus::WouldClean => (Icon::Check, theme::green()),
+                CleanStatus::Skipped => (Icon::Minus, theme::text_3()),
+                CleanStatus::Partial => (Icon::Alert, theme::amber()),
+                CleanStatus::Failed => (Icon::Alert, theme::rose()),
+            };
+            let row_el = row()
+                .flex_none()
+                .h(px(TICKER_ROW))
+                .gap(sp(2.5))
+                .child(icon(which, 14.0, color))
+                .child(
+                    clip()
+                        .flex_1()
+                        .fs(font::BODY)
+                        .text_color(theme::text_2())
+                        .child(item.title.clone()),
+                )
+                .child(
+                    div()
+                        .flex_none()
+                        .fs(font::CAPTION)
+                        .tabular()
+                        .text_color(theme::text_3())
+                        .child(if item.bytes > 0 {
+                            human_size(item.bytes)
+                        } else {
+                            String::new()
+                        }),
+                );
+            // Until the list is full there is nothing to slide, so the newest row fades in.
+            if !sliding && first + offset + 1 == done.len() {
+                row_el
+                    .with_animation(
+                        ElementId::NamedInteger("ticker-new".into(), done.len() as u64),
+                        motion::animation(motion::pace::QUICK),
+                        |this, t| this.opacity(t),
+                    )
+                    .into_any_element()
+            } else {
+                row_el.into_any_element()
+            }
+        })
+        .collect();
+    let list = col().children(rows);
+    let list = if sliding {
+        list.with_animation(
+            ElementId::NamedInteger("ticker".into(), done.len() as u64),
+            motion::animation(motion::pace::TICK),
+            |this, t| this.relative().top(px(-TICKER_ROW * t)),
+        )
+        .into_any_element()
+    } else {
+        list.into_any_element()
+    };
+    div()
+        .h(px(TICKER_ROW * TICKER_ROWS as f32))
+        .overflow_hidden()
+        .border_t_1()
+        .border_color(theme::hairline())
+        .pt(sp(1.))
+        .child(list)
 }

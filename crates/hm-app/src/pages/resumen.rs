@@ -1,8 +1,8 @@
 //! The first thing you see: how your Mac is doing and what you could do about it.
 
 use gpui::{
-    div, prelude::*, px, relative, AnimationExt, AnyElement, Background, Context, Div, ElementId,
-    FontWeight, SharedString, Stateful, Window,
+    div, prelude::*, px, AnyElement, Background, Context, Div, FontWeight, SharedString, Stateful,
+    Window,
 };
 use hm_core::fmt::human_size;
 use hm_core::{t, tf, Area};
@@ -14,10 +14,9 @@ use crate::assets::Icon;
 use crate::logic::selection::{is_actionable, Summary};
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp, GUTTER};
-use crate::ui::charts::{growing_bar, health_ring, indeterminate_bar, progress_bar, stack_bar};
+use crate::ui::charts::{health_ring, indeterminate_bar, progress_bar, stack_bar};
 use crate::ui::chrome::{action_bar, big_number, card, eyebrow, notice, NoticeKind};
 use crate::ui::controls::{dot, Btn, BtnSize};
-use crate::ui::motion;
 use crate::ui::{clip, col, icon, row, TextExt};
 
 impl Shell {
@@ -36,7 +35,7 @@ impl Shell {
                     .pb(sp(6.))
                     .gap(sp(7.))
                     .child(self.render_hero(window, cx))
-                    .child(self.render_disk_usage())
+                    .child(self.render_disk_usage(cx))
                     .child(self.render_resumen_body(cx)),
             ))
             .when(summary.count > 0, |this| {
@@ -220,15 +219,12 @@ impl Shell {
             let certain = hm_system::health::reclaimable_bytes(&self.findings);
             let to_review = self.reclaimable_total().saturating_sub(certain);
             let chosen = self.selection.summarize(&self.findings);
-            let scan_key = self.scan_key();
             (
                 col()
                     .gap(sp(1.))
                     .child(eyebrow(t!("Puedes recuperar", "You can free up")))
-                    .child(motion::counting_size(
-                        "recover",
-                        scan_key,
-                        certain,
+                    .child(big_number(
+                        human_size(certain),
                         font::DISPLAY,
                         theme::text_1(),
                     ))
@@ -239,9 +235,7 @@ impl Shell {
                             col()
                                 .mt(sp(1.))
                                 .gap(sp(1.5))
-                                .child(growing_bar(
-                                    "chosen",
-                                    scan_key,
+                                .child(progress_bar(
                                     chosen.bytes as f32 / certain as f32,
                                     theme::primary(),
                                     4.0,
@@ -322,7 +316,7 @@ impl Shell {
         }
     }
 
-    fn render_disk_usage(&self) -> impl IntoElement {
+    fn render_disk_usage(&self, cx: &mut Context<Self>) -> AnyElement {
         let disk = self.live.snapshot.as_ref().and_then(main_disk);
         let Some(disk) = disk else {
             return col()
@@ -331,13 +325,14 @@ impl Shell {
                     t!("Disco", "Disk"),
                     t!("Leyendo el disco…", "Reading the disk…").to_string(),
                 ))
-                .child(indeterminate_bar("disk-loading", theme::surface_4(), 12.0));
+                .child(indeterminate_bar("disk-loading", theme::surface_4(), 12.0))
+                .child(self.storage_list(None, cx))
+                .into_any_element();
         };
         let total = disk.total.max(1);
         let used = disk.total.saturating_sub(disk.available);
         let by_area = crate::logic::selection::reclaimable_by_area(&self.findings);
         let mut segments: Vec<(f32, Background)> = Vec::new();
-        let mut legend: Vec<AnyElement> = Vec::new();
         let mut accounted = 0u64;
         for area in AREAS {
             let bytes = by_area.get(&area).copied().unwrap_or(0).min(used);
@@ -346,31 +341,17 @@ impl Shell {
             }
             accounted = accounted.saturating_add(bytes);
             segments.push((bytes as f32 / total as f32, theme::area_color(area).into()));
-            legend.push(legend_item(
-                theme::area_color(area),
-                area.label(),
-                human_size(bytes),
-            ));
         }
         let other = used.saturating_sub(accounted);
         segments.push((other as f32 / total as f32, theme::surface_4().into()));
-        legend.push(legend_item(
-            theme::surface_4(),
-            if accounted > 0 {
-                t!("Lo demás", "Everything else")
-            } else {
-                t!("En uso", "In use")
-            },
-            human_size(other),
-        ));
+        let other_label = if accounted > 0 {
+            t!("Lo demás", "Everything else")
+        } else {
+            t!("En uso", "In use")
+        };
         segments.push((
             disk.available as f32 / total as f32,
             theme::surface_2().into(),
-        ));
-        legend.push(legend_item(
-            theme::surface_2(),
-            t!("Libre", "Free"),
-            human_size(disk.available),
         ));
 
         col()
@@ -384,51 +365,22 @@ impl Shell {
                     human_size(disk.total)
                 ),
             ))
-            // The bar grows from the left each time a scan redraws it.
-            .child(
-                div()
-                    .w_full()
-                    .child(stack_bar(&segments, 12.0))
-                    .with_animation(
-                        ElementId::NamedInteger("disk-bar".into(), self.scan_key()),
-                        motion::animation(motion::pace::FILL),
-                        |this, t| this.w(relative(t.max(0.02))),
-                    ),
-            )
-            .child(
-                row()
-                    .flex_wrap()
-                    .gap_x(sp(4.))
-                    .gap_y(sp(1.))
-                    .children(legend),
-            )
+            .child(stack_bar(&segments, 12.0))
+            .child(self.storage_list(Some((other_label, other, disk.available)), cx))
+            .into_any_element()
     }
 
-    fn render_resumen_body(&mut self, cx: &mut Context<Self>) -> AnyElement {
+    fn render_resumen_body(&mut self, _cx: &mut Context<Self>) -> AnyElement {
         if self.scan.running
             || (self.scan.finished_once && self.scan.was_cancelled && self.findings.is_empty())
         {
             return self.render_live_scan().into_any_element();
         }
         if !self.scan.finished_once {
+            // The storage list above already names each area and what it holds.
             return col()
                 .gap(sp(3.))
-                .child(section_title_row(t!(
-                    "Lo que vamos a mirar",
-                    "What we'll look at"
-                )))
-                .child(
-                    row()
-                        .w_full()
-                        .gap(sp(2.5))
-                        .items_start()
-                        .children(AREAS.map(|area| self.area_tile(area, cx))),
-                )
-                .child(
-                    div()
-                        .mt(sp(4.))
-                        .child(section_title_row(t!("Cómo funciona", "How it works"))),
-                )
+                .child(section_title_row(t!("Cómo funciona", "How it works")))
                 .child(how_it_works())
                 .into_any_element();
         }
@@ -476,14 +428,7 @@ impl Shell {
                     None,
                 ))
             })
-            .child(section_title_row(t!("Por área", "By area")))
-            .child(
-                row()
-                    .w_full()
-                    .gap(sp(2.5))
-                    .items_start()
-                    .children(AREAS.map(|area| self.area_tile(area, cx))),
-            )
+
             .into_any_element()
     }
 
@@ -500,7 +445,6 @@ impl Shell {
             tf!("Limpiar {}", "Clean {}", summary.total_label())
         };
         let at_least = summary.is_lower_bound();
-        // Rises from the bottom edge when something is first selected.
         action_bar(
             row()
                 .gap(sp(2.))
@@ -536,11 +480,6 @@ impl Shell {
                 "clean-selection",
                 cx.listener(move |this, _, _, cx| this.review_selection(area, cx)),
             ),
-        )
-        .with_animation(
-            "selection-bar",
-            motion::animation(motion::pace::ENTER),
-            |this, t| this.opacity(t).relative().top(px(18.0 * (1.0 - t))),
         )
     }
 }
@@ -634,27 +573,6 @@ fn section_heading(title: &'static str, detail: String) -> impl IntoElement {
                 .text_color(theme::text_2())
                 .child(detail),
         )
-}
-
-fn legend_item(color: gpui::Hsla, label: &str, value: String) -> AnyElement {
-    row()
-        .gap(sp(1.5))
-        .h(px(20.))
-        .child(dot(color, 8.0))
-        .child(
-            div()
-                .fs(font::CAPTION)
-                .text_color(theme::text_2())
-                .child(label.to_string()),
-        )
-        .child(
-            div()
-                .fs(font::CAPTION)
-                .tabular()
-                .text_color(theme::text_1())
-                .child(value),
-        )
-        .into_any_element()
 }
 
 fn ring_placeholder(diameter: f32) -> AnyElement {
