@@ -14,11 +14,18 @@ use crate::state::{AppsTab, Page, Shell};
 use crate::theme::{self, font, radius, sp, SIDEBAR_WIDTH};
 use crate::ui::{col, icon, row, TextExt};
 
-/// The app's own icon, the brand mark, rather than a stand-in drawn in code.
-static LOGO: LazyLock<Arc<Image>> = LazyLock::new(|| {
+/// The app's own icon, the brand mark, rather than a stand-in drawn in code. One per theme, so it
+/// never sinks into a dark sidebar or weighs on a light one.
+static LOGO_LIGHT: LazyLock<Arc<Image>> = LazyLock::new(|| {
     Arc::new(Image::from_bytes(
         ImageFormat::Png,
-        include_bytes!("../../assets/AppIcon.png").to_vec(),
+        include_bytes!("../../assets/AppIcon-light.png").to_vec(),
+    ))
+});
+static LOGO_DARK: LazyLock<Arc<Image>> = LazyLock::new(|| {
+    Arc::new(Image::from_bytes(
+        ImageFormat::Png,
+        include_bytes!("../../assets/AppIcon-dark.png").to_vec(),
     ))
 });
 
@@ -48,7 +55,15 @@ impl Shell {
                     .mb(sp(3.))
                     .px(sp(2.))
                     .gap(sp(2.))
-                    .child(img(LOGO.clone()).flex_none().size(px(24.)))
+                    .child(
+                        img(if theme::is_dark() {
+                            LOGO_DARK.clone()
+                        } else {
+                            LOGO_LIGHT.clone()
+                        })
+                        .flex_none()
+                        .size(px(24.)),
+                    )
                     .child(
                         div()
                             .fs(font::SUBHEAD)

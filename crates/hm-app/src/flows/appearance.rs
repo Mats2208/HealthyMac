@@ -29,14 +29,19 @@ impl Shell {
     }
 
     fn apply_appearance(&self, window: &Window) {
+        // The window's appearance is the system's: the app's own Light or Dark choice only changes
+        // its palette, never the window.
+        let system_dark = matches!(
+            window.appearance(),
+            WindowAppearance::Dark | WindowAppearance::VibrantDark
+        );
         let dark = match self.ctx.config.appearance {
-            Appearance::System => matches!(
-                window.appearance(),
-                WindowAppearance::Dark | WindowAppearance::VibrantDark
-            ),
+            Appearance::System => system_dark,
             Appearance::Light => false,
             Appearance::Dark => true,
         };
         theme::set_dark(dark);
+        // The Dock belongs to the system, so its icon follows the system, whatever the app shows.
+        crate::dock_icon::apply(system_dark);
     }
 }

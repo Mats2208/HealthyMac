@@ -1,13 +1,18 @@
 // Draws the app icon at 1024 pt and saves it as a PNG. scripts/make_icon.sh turns it into an .icns.
-// Usage: swift scripts/make_icon.swift <output.png>
+// Usage: swift scripts/make_icon.swift <output.png> [light|dark]
 //
-// Follows docs/DESIGN.md: a neutral graphite plate, and colour only where it reports state. The
-// ring is the health score, drawn in the same system green the app uses for "fine"; the pulse line
-// is the Mac. Flat strokes, no glow, no gradient on the marks: it has to read at 16 px in a list.
+// Follows docs/DESIGN.md: a neutral plate, and colour only where it reports state. The ring is the
+// health score, drawn in the system green the app uses for "fine"; the pulse line is the Mac. Flat
+// strokes, no glow, no gradient on the marks: it has to read at 16 px in a list.
+//
+// Two variants, because one plate cannot sit well on both Docks: `light` is a white plate with a
+// graphite pulse, for light mode; `dark` is a graphite plate lifted a few shades above the dark Dock,
+// with a brighter edge so it does not sink into it.
 import AppKit
 
 let side: CGFloat = 1024
 let output = CommandLine.arguments[1]
+let dark = CommandLine.arguments.count > 2 && CommandLine.arguments[2] == "dark"
 
 guard
     let context = CGContext(
@@ -37,27 +42,33 @@ let platePath = CGPath(roundedRect: plate, cornerWidth: 185, cornerHeight: 185, 
 context.saveGState()
 context.setShadow(offset: CGSize(width: 0, height: -14), blur: 36, color: color(0x000000, 0.32))
 context.addPath(platePath)
-context.setFillColor(color(0x1C1C1E))
+context.setFillColor(color(dark ? 0x2C2C2E : 0xFFFFFF))
 context.fillPath()
 context.restoreGState()
 
-// Graphite, a shade lighter at the top, like the app's dark sidebar under a light from above.
+// A shade lighter at the top, as if lit from above. Dark: graphite well above the Dock's own grey.
+// Light: white into the faintest grey, so the plate has a body on a white desktop.
 context.saveGState()
 context.addPath(platePath)
 context.clip()
 context.drawLinearGradient(
-    gradient([color(0x3A3A3C), color(0x1C1C1E)], [0, 1]),
+    gradient(
+        dark ? [color(0x5A5A5E), color(0x2C2C2E)] : [color(0xFFFFFF), color(0xE9E9EC)], [0, 1]),
     start: CGPoint(x: side / 2, y: side - inset), end: CGPoint(x: side / 2, y: inset), options: [])
 context.restoreGState()
 
-// Hairline along the edge, brighter at the top, so the plate holds its shape on a dark Dock.
+// Edge: a bright rim on dark so the plate keeps its outline in a dark Dock, a soft grey line on
+// light so it does not melt into a white window.
 context.saveGState()
 context.addPath(platePath)
-context.setLineWidth(4)
+context.setLineWidth(dark ? 6 : 4)
 context.replacePathWithStrokedPath()
 context.clip()
 context.drawLinearGradient(
-    gradient([color(0xFFFFFF, 0.20), color(0xFFFFFF, 0.04)], [0, 1]),
+    gradient(
+        dark
+            ? [color(0xFFFFFF, 0.38), color(0xFFFFFF, 0.10)]
+            : [color(0x000000, 0.06), color(0x000000, 0.16)], [0, 1]),
     start: CGPoint(x: side / 2, y: side - inset), end: CGPoint(x: side / 2, y: inset), options: [])
 context.restoreGState()
 
@@ -67,7 +78,7 @@ let width: CGFloat = 56
 
 // Ring track.
 context.setLineWidth(width)
-context.setStrokeColor(color(0xFFFFFF, 0.10))
+context.setStrokeColor(dark ? color(0xFFFFFF, 0.14) : color(0x000000, 0.08))
 context.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2, clockwise: false)
 context.strokePath()
 
@@ -79,7 +90,7 @@ ring.addArc(center: center, radius: radius, startAngle: start, endAngle: end, cl
 context.addPath(ring)
 context.setLineWidth(width)
 context.setLineCap(.round)
-context.setStrokeColor(color(0x30D158))
+context.setStrokeColor(dark ? color(0x30D158) : color(0x28B84C))
 context.strokePath()
 
 // Pulse line across the middle.
@@ -95,7 +106,7 @@ context.addPath(pulse)
 context.setLineWidth(34)
 context.setLineCap(.round)
 context.setLineJoin(.round)
-context.setStrokeColor(color(0xF2F2F7))
+context.setStrokeColor(dark ? color(0xF5F5F7) : color(0x1C1C1E))
 context.strokePath()
 
 guard let image = context.makeImage(),

@@ -32,7 +32,7 @@ paleta categórica apagada, porque ahí el color distingue series.
 | Trece radios distintos | Formas sin sistema | Cuatro: 6 controles, 10 tarjetas y filas, 14 hojas, píldora para etiquetas |
 | 40 íconos SVG dibujados a mano | Trazo irregular, sin familia | Phosphor (MIT), peso regular |
 | Logo: corazón en un cuadrado con gradiente | No es el ícono de la app | El ícono real de la app |
-| Ícono de la app con gradiente teal-violeta y halo | El mismo neón que se retiró de la interfaz | Placa grafito, anillo en verde de estado y pulso blanco, planos (`scripts/make_icon.swift`) |
+| Ícono de la app con gradiente teal-violeta y halo | El mismo neón que se retiró de la interfaz | Dos variantes planas (`scripts/make_icon.swift`): placa blanca con pulso grafito para modo claro y placa grafito con borde claro para modo oscuro, siempre con el anillo en verde de estado. El Dock sigue al sistema en vivo; la barra lateral, al tema de la app; Finder y Launchpad usan la clara |
 | Elementos que aparecían de golpe | Brusco, sobre todo el fondo oscuro de las hojas | Transiciones cortas y con freno, ver Movimiento |
 | Página flotando como tarjeta sobre la ventana | Layout de panel web | Barra lateral y contenido a ras, separados por una línea, como Finder o Ajustes |
 | Sin tema claro | | Claro y oscuro; por defecto sigue al sistema |
