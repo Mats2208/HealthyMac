@@ -21,7 +21,15 @@ pub enum BtnKind {
     Secondary,
     Ghost,
     Danger,
+    /// An action repeated on every row of a list. Quiet until the pointer is over its row, so a
+    /// column of identical buttons does not shout. The row carries `.group(ROW_GROUP)`.
+    Row,
+    /// The same, for actions that remove or stop something: it turns red as its row is hovered.
+    RowDanger,
 }
+
+/// The group name a list row gives itself so its `Row` and `RowDanger` buttons can wake up.
+pub const ROW_GROUP: &str = "list-row";
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BtnSize {
@@ -65,6 +73,16 @@ impl Btn {
         Self::new(label, BtnKind::Danger)
     }
 
+    /// See [`BtnKind::Row`].
+    pub fn row_action(label: impl Into<SharedString>) -> Self {
+        Self::new(label, BtnKind::Row).size(BtnSize::Sm)
+    }
+
+    /// See [`BtnKind::RowDanger`].
+    pub fn row_danger(label: impl Into<SharedString>) -> Self {
+        Self::new(label, BtnKind::RowDanger).size(BtnSize::Sm)
+    }
+
     pub fn size(mut self, size: BtnSize) -> Self {
         self.size = size;
         self
@@ -98,6 +116,7 @@ impl Btn {
             BtnKind::Secondary => theme::text_1(),
             BtnKind::Ghost => theme::text_2(),
             BtnKind::Danger => theme::rose(),
+            BtnKind::Row | BtnKind::RowDanger => theme::text_3(),
         };
         let base = row()
             .id(id)
@@ -136,6 +155,16 @@ impl Btn {
             BtnKind::Danger => base
                 .bg(theme::rose().alpha(0.12))
                 .hover(|style| style.bg(theme::rose().alpha(0.2))),
+            BtnKind::Row => base
+                .group_hover(ROW_GROUP, |style| {
+                    style.bg(theme::surface_2()).text_color(theme::text_1())
+                })
+                .hover(|style| style.bg(theme::surface_3()).text_color(theme::text_1())),
+            BtnKind::RowDanger => base
+                .group_hover(ROW_GROUP, |style| {
+                    style.bg(theme::rose().alpha(0.1)).text_color(theme::rose())
+                })
+                .hover(|style| style.bg(theme::rose().alpha(0.2)).text_color(theme::rose())),
         };
         styled
             .cursor_pointer()

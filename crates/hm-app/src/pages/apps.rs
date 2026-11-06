@@ -13,7 +13,7 @@ use crate::assets::Icon;
 use crate::state::{AppSort, AppsTab, Shell};
 use crate::theme::{self, font, radius, sp, GUTTER};
 use crate::ui::chrome::{empty_state, notice, page_header, NoticeKind};
-use crate::ui::controls::{dot, pill, segmented, tag, Btn, BtnSize};
+use crate::ui::controls::{dot, pill, segmented, tag, Btn, ROW_GROUP};
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{clip, col, row, TextExt};
 
@@ -208,6 +208,7 @@ impl Shell {
             .child(
                 row()
                     .id(ElementId::NamedInteger("app".into(), index as u64))
+                    .group(ROW_GROUP)
                     .h(px(ROW_HEIGHT))
                     .w_full()
                     .px(sp(2.))
@@ -315,8 +316,7 @@ impl Shell {
                         } else if app.uninstall_blocked.is_some() {
                             tag("No se puede").into_any_element()
                         } else {
-                            Btn::ghost("Desinstalar")
-                                .size(BtnSize::Sm)
+                            Btn::row_danger("Desinstalar")
                                 .build(
                                     ElementId::NamedInteger("app-uninstall".into(), index as u64),
                                     cx.listener(move |this, _, _, cx| {

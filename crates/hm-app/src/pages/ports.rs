@@ -7,7 +7,7 @@ use crate::assets::Icon;
 use crate::state::Shell;
 use crate::theme::{self, font, radius, sp, GUTTER};
 use crate::ui::chrome::{empty_state, notice, page_header, NoticeKind};
-use crate::ui::controls::{tag, Btn, BtnSize};
+use crate::ui::controls::{tag, Btn, ROW_GROUP};
 use crate::ui::label::path_label;
 use crate::ui::scrollbar::{scrollbar, ScrollSource};
 use crate::ui::{clip, col, row, TextExt};
@@ -18,6 +18,12 @@ const PROCESS_WIDTH: f32 = 270.0;
 impl Shell {
     pub fn render_ports(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let count = self.ports.ports.data.as_ref().map_or(0, Vec::len);
+        // Usually every listener is the current user's, and a column of the same name says nothing.
+        let show_user = self.ports.ports.data.as_ref().is_some_and(|ports| {
+            ports
+                .iter()
+                .any(|port| ports.first().is_some_and(|first| first.user != port.user))
+        });
         let subtitle = if self.ports.ports.data.is_some() {
             format!(
                 "{} de tus procesos. Se actualiza cada pocos segundos.",
@@ -85,7 +91,9 @@ impl Shell {
                         .child(div().w(px(72.)).child("Puerto"))
                         .child(div().w(px(PROCESS_WIDTH)).child("Proceso"))
                         .child(div().flex_1().min_w(px(0.)).child("Carpeta"))
-                        .child(div().w(px(80.)).child("Usuario"))
+                        .when(show_user, |this| {
+                            this.child(div().w(px(80.)).child("Usuario"))
+                        })
                         .child(div().w(px(82.))),
                 )
                 .child(
@@ -98,12 +106,12 @@ impl Shell {
                                 "ports-list",
                                 count,
                                 cx.processor(
-                                    |this: &mut Shell,
-                                     range: std::ops::Range<usize>,
-                                     _window,
-                                     cx| {
+                                    move |this: &mut Shell,
+                                          range: std::ops::Range<usize>,
+                                          _window,
+                                          cx| {
                                         range
-                                            .map(|index| this.render_port(index, cx))
+                                            .map(|index| this.render_port(index, show_user, cx))
                                             .collect::<Vec<_>>()
                                     },
                                 ),
@@ -122,7 +130,7 @@ impl Shell {
             .into_any_element()
     }
 
-    fn render_port(&mut self, index: usize, cx: &mut Context<Self>) -> AnyElement {
+    fn render_port(&mut self, index: usize, show_user: bool, cx: &mut Context<Self>) -> AnyElement {
         let Some(port) = self
             .ports
             .ports
@@ -138,6 +146,7 @@ impl Shell {
             .child(
                 row()
                     .id(ElementId::NamedInteger("port".into(), index as u64))
+                    .group(ROW_GROUP)
                     .h(px(ROW_HEIGHT))
                     .w_full()
                     .px(sp(2.))
@@ -212,16 +221,18 @@ impl Shell {
                             },
                         ),
                     )
-                    .child(
-                        clip()
-                            .flex_none()
-                            .w(px(80.))
-                            .fs(font::CAPTION)
-                            .text_color(theme::text_2())
-                            .child(port.user.clone()),
-                    )
+                    .when(show_user, |this| {
+                        this.child(
+                            clip()
+                                .flex_none()
+                                .w(px(80.))
+                                .fs(font::CAPTION)
+                                .text_color(theme::text_2())
+                                .child(port.user.clone()),
+                        )
+                    })
                     .child(div().flex_none().w(px(82.)).flex().justify_end().child(
-                        Btn::ghost("Terminar").size(BtnSize::Sm).build(
+                        Btn::row_danger("Terminar").build(
                             ElementId::NamedInteger("port-kill".into(), index as u64),
                             cx.listener(move |this, _, _, cx| {
                                 this.open_terminate(target.clone(), cx)
