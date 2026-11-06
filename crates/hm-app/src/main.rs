@@ -96,7 +96,18 @@ fn main() {
     let mode = RunMode::from_env();
     // Read the config before anything is drawn, so the first frame and the menu bar are already in
     // the right language.
-    let (ctx, config_error) = build_context(&mode);
+    let (mut ctx, config_error) = build_context(&mode);
+    // For screenshots and testing: force a language or theme without touching the saved settings.
+    match std::env::var("HEALTHYMAC_LANG").as_deref() {
+        Ok("es") => ctx.config.language = hm_core::LanguageChoice::Spanish,
+        Ok("en") => ctx.config.language = hm_core::LanguageChoice::English,
+        _ => {}
+    }
+    match std::env::var("HEALTHYMAC_THEME").as_deref() {
+        Ok("light") => ctx.config.appearance = hm_core::Appearance::Light,
+        Ok("dark") => ctx.config.appearance = hm_core::Appearance::Dark,
+        _ => {}
+    }
     hm_core::i18n::set_language(flows::language::resolve(ctx.config.language));
     let mut first_context = Some((ctx, config_error));
     // For automated testing: open without taking focus from whatever the user is doing.
