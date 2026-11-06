@@ -552,6 +552,12 @@ pub fn uninstall_finding(app: &AppInfo, include_leftovers: bool) -> Finding {
     finding
 }
 
+/// The icon file of the app bundle at `path`, read from its `Info.plist`. `None` when the bundle
+/// names no icon file, as apps that keep theirs in an asset catalog do.
+pub fn icon_path_of(path: &Path) -> Option<PathBuf> {
+    crate::inventory::read_bundle(path).icon_path
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

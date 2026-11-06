@@ -1,6 +1,6 @@
 //! Invented monitor readings, apps, startup items and a disk tree.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use hm_core::audit::AuditEntry;
@@ -167,6 +167,24 @@ pub fn health(reclaimable: u64) -> HealthReport {
     }
 }
 
+/// The demo's apps are invented, but when one of them is installed on this Mac its real icon is
+/// shown, read from the bundle on disk the same way the real Apps page does. Nothing is downloaded:
+/// the demo stays as offline as the rest of the app.
+fn installed_icon(name: &str) -> Option<PathBuf> {
+    // The demo names Photos in the interface language; the bundle is always Photos.app.
+    let bundle = if name == "Fotos" { "Photos" } else { name };
+    [
+        "/Applications",
+        "/Applications/Utilities",
+        "/System/Applications",
+        "/System/Applications/Utilities",
+    ]
+    .iter()
+    .map(|dir| Path::new(dir).join(format!("{bundle}.app")))
+    .find(|path| path.is_dir())
+    .and_then(|path| hm_system::apps::icon_path_of(&path))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn app(
     name: &str,
@@ -199,7 +217,7 @@ fn app(
         running,
         is_system,
         arch,
-        icon_path: None,
+        icon_path: installed_icon(name),
         executable: Some(name.to_string()),
         uninstall_blocked: is_system
             .then(|| t!("Forma parte de macOS.", "It's part of macOS.").to_string()),
