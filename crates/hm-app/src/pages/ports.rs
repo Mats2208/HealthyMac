@@ -196,7 +196,7 @@ impl Shell {
                                 clip()
                                     .w_full()
                                     .fs(font::BODY)
-                                    .child(port.process_name.clone()),
+                                    .child(crate::logic::ports::display_name(&port)),
                             )
                             .child(
                                 row()
@@ -249,12 +249,19 @@ impl Shell {
                         )
                     })
                     .child(div().flex_none().w(px(82.)).flex().justify_end().child(
-                        Btn::row_danger(t!("Terminar", "Quit")).build(
-                            ElementId::NamedInteger("port-kill".into(), index as u64),
-                            cx.listener(move |this, _, _, cx| {
-                                this.open_terminate(target.clone(), cx)
-                            }),
-                        ),
+                        // macOS's own services get a label instead: quitting them helps nobody.
+                        if crate::logic::ports::is_system_process(&port) {
+                            tag("macOS").into_any_element()
+                        } else {
+                            Btn::row_danger(t!("Terminar", "Quit"))
+                                .build(
+                                    ElementId::NamedInteger("port-kill".into(), index as u64),
+                                    cx.listener(move |this, _, _, cx| {
+                                        this.open_terminate(target.clone(), cx)
+                                    }),
+                                )
+                                .into_any_element()
+                        },
                     )),
             )
             .into_any_element()

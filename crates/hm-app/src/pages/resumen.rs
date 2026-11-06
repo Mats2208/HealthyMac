@@ -493,7 +493,12 @@ impl Shell {
         summary: Summary,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let label = tf!("Limpiar {}", "Clean {}", summary.total_label());
+        // Some items free nothing measurable, such as empty lock files; "Clean 0 B" reads like a bug.
+        let label = if summary.bytes == 0 {
+            t!("Limpiar", "Clean").to_string()
+        } else {
+            tf!("Limpiar {}", "Clean {}", summary.total_label())
+        };
         let at_least = summary.is_lower_bound();
         // Rises from the bottom edge when something is first selected.
         action_bar(
