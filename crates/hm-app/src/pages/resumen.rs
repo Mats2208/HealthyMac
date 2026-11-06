@@ -1,7 +1,8 @@
 //! The first thing you see: how your Mac is doing and what you could do about it.
 
 use gpui::{
-    div, prelude::*, px, AnyElement, Background, Context, FontWeight, SharedString, Window,
+    div, prelude::*, px, AnyElement, Background, Context, Div, FontWeight, SharedString, Stateful,
+    Window,
 };
 use hm_core::fmt::human_size;
 use hm_core::Area;
@@ -12,11 +13,11 @@ use super::{content_width, plural, scroll_pane};
 use crate::assets::Icon;
 use crate::logic::selection::{is_actionable, Summary};
 use crate::state::Shell;
-use crate::theme::{self, font, sp, GUTTER};
+use crate::theme::{self, font, radius, sp, GUTTER};
 use crate::ui::charts::{health_ring, indeterminate_bar, progress_bar, stack_bar};
 use crate::ui::chrome::{action_bar, big_number, card, eyebrow, notice, NoticeKind};
 use crate::ui::controls::{dot, Btn, BtnSize};
-use crate::ui::{clip, col, row, TextExt};
+use crate::ui::{clip, col, icon, row, TextExt};
 
 impl Shell {
     pub fn render_resumen(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
@@ -46,6 +47,9 @@ impl Shell {
     fn render_hero(&mut self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement {
         let wide = content_width(window) > 880.0;
         let diameter = if wide { 184.0 } else { 160.0 };
+        // Until a scan says what can be recovered, the score leaves that out, and scanning would
+        // seem to make it worse. Saying so up front keeps the drop from being a surprise.
+        let provisional = !self.scan.finished_once;
         let (ring, headline, sub): (AnyElement, SharedString, SharedString) =
             match &self.live.health {
                 Some(report) => (
@@ -53,7 +57,11 @@ impl Shell {
                         self.live.ring_key,
                         self.live.ring_from,
                         self.live.ring_to,
-                        report.label.clone().into(),
+                        if provisional {
+                            "Provisional".into()
+                        } else {
+                            report.label.clone().into()
+                        },
                         diameter,
                     )
                     .into_any_element(),
@@ -65,6 +73,7 @@ impl Shell {
                             .iter()
                             .filter(|factor| factor.penalty > 0)
                             .count(),
+                        provisional,
                     )
                     .into(),
                 ),
@@ -119,7 +128,7 @@ impl Shell {
             })
             .collect();
 
-        row()
+        let summary = row()
             .w_full()
             .gap(px(if wide { 36.0 } else { 24.0 }))
             .items_start()
@@ -142,122 +151,158 @@ impl Shell {
                             .child(div().fs(font::BODY).text_color(theme::text_2()).child(sub)),
                     )
                     .child(col().gap(sp(2.5)).children(factors)),
-            )
-            .child(self.render_scan_card(cx))
+            );
+        // Narrow, the card would squeeze the reasons into a sliver, so it moves below and lies flat.
+        if wide {
+            summary.child(self.render_scan_card(false, cx))
+        } else {
+            col()
+                .w_full()
+                .gap(sp(5.))
+                .child(summary)
+                .child(self.render_scan_card(true, cx))
+        }
     }
 
-    /// The card that invites a scan, shows it running, and then shows what it found.
-    fn render_scan_card(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let reclaimable = self.reclaimable_total();
-        let content: AnyElement = if self.scan.running {
+    /// The card that invites a scan, shows it running, and then shows what it found. `flat` lays it
+    /// out as one wide row, for windows too narrow to give it a column of its own.
+    fn render_scan_card(&mut self, flat: bool, cx: &mut Context<Self>) -> impl IntoElement {
+        let (info, action): (AnyElement, Stateful<Div>) = if self.scan.running {
             let (done, total) = self.scan.progress();
             let fraction = if total > 0 {
                 done as f32 / total as f32
             } else {
                 0.0
             };
-            col()
-                .gap(sp(3.))
-                .child(eyebrow("Escaneando"))
-                .child(big_number(
-                    format!("{done} de {total}"),
-                    font::DISPLAY - 8.0,
-                    theme::text_1(),
-                ))
-                .child(if total == 0 {
-                    indeterminate_bar("scan-indeterminate", theme::brand_stops(), 6.0)
-                } else {
-                    progress_bar(fraction, theme::brand_stops(), 6.0)
-                })
-                .child(
-                    div()
-                        .fs(font::CAPTION)
-                        .text_color(theme::text_2())
-                        .child("Solo mira, no toca nada."),
-                )
-                .child(
-                    Btn::secondary(if self.scan.cancelling {
-                        "Cancelando…"
+            (
+                col()
+                    .gap(sp(3.))
+                    .child(eyebrow("Escaneando"))
+                    .child(big_number(
+                        format!("{done} de {total}"),
+                        font::DISPLAY - 8.0,
+                        theme::text_1(),
+                    ))
+                    .child(if total == 0 {
+                        indeterminate_bar("scan-indeterminate", theme::brand_stops(), 6.0)
                     } else {
-                        "Cancelar"
+                        progress_bar(fraction, theme::brand_stops(), 6.0)
                     })
-                    .icon(Icon::Stop)
-                    .disabled(self.scan.cancelling)
-                    .build(
-                        "scan-cancel",
-                        cx.listener(|this, _, _, cx| this.cancel_scan(cx)),
+                    .child(
+                        div()
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_2())
+                            .child("Solo mira, no toca nada."),
                     )
-                    .w_full(),
-                )
-                .into_any_element()
+                    .into_any_element(),
+                Btn::secondary(if self.scan.cancelling {
+                    "Cancelando…"
+                } else {
+                    "Cancelar"
+                })
+                .icon(Icon::Stop)
+                .disabled(self.scan.cancelling)
+                .build(
+                    "scan-cancel",
+                    cx.listener(|this, _, _, cx| this.cancel_scan(cx)),
+                ),
+            )
         } else if self.scan.finished_once {
             // What needs a human decision is not "reclaimable" until its owner says so.
             let certain = hm_system::health::reclaimable_bytes(&self.findings);
-            let to_review = reclaimable.saturating_sub(certain);
-            col()
-                .gap(sp(1.))
-                .child(eyebrow("Puedes recuperar"))
-                .child(big_number(
-                    human_size(certain),
-                    font::DISPLAY,
-                    theme::text_1(),
-                ))
-                .child(
-                    div()
-                        .mb(sp(3.))
-                        .fs(font::CAPTION)
-                        .text_color(theme::text_2())
-                        .child(found_sentence(&self.findings, to_review)),
-                )
-                .child(
-                    Btn::secondary("Escanear de nuevo")
-                        .icon(Icon::Refresh)
-                        .build(
-                            "scan-again",
-                            cx.listener(|this, _, _, cx| this.start_scan(cx)),
+            let to_review = self.reclaimable_total().saturating_sub(certain);
+            let chosen = self.selection.summarize(&self.findings);
+            (
+                col()
+                    .gap(sp(1.))
+                    .child(eyebrow("Puedes recuperar"))
+                    .child(big_number(
+                        human_size(certain),
+                        font::DISPLAY,
+                        theme::text_1(),
+                    ))
+                    // Ties this number to the one on the clean button, which counts only what is
+                    // chosen and so is usually smaller.
+                    .when(certain > 0, |this| {
+                        this.child(
+                            col()
+                                .mt(sp(1.))
+                                .gap(sp(1.5))
+                                .child(progress_bar(
+                                    chosen.bytes as f32 / certain as f32,
+                                    theme::brand_stops(),
+                                    4.0,
+                                ))
+                                .child(
+                                    div()
+                                        .fs(font::CAPTION)
+                                        .tabular()
+                                        .text_color(theme::text_2())
+                                        .child(format!(
+                                            "{} elegidos para limpiar",
+                                            human_size(chosen.bytes)
+                                        )),
+                                ),
                         )
-                        .w_full(),
-                )
-                .into_any_element()
+                    })
+                    .child(
+                        div()
+                            .mt(sp(1.))
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_3())
+                            .child(found_sentence(&self.findings, to_review)),
+                    )
+                    .into_any_element(),
+                Btn::secondary("Escanear de nuevo")
+                    .icon(Icon::Refresh)
+                    .build(
+                        "scan-again",
+                        cx.listener(|this, _, _, cx| this.start_scan(cx)),
+                    ),
+            )
         } else {
-            col()
-                .gap(sp(3.))
-                .child(
-                    col()
-                        .gap(sp(1.))
-                        .child(
-                            div()
-                                .fs(font::SUBHEAD)
-                                .font_weight(FontWeight::SEMIBOLD)
-                                .child("¿Cuánto puedes recuperar?"),
-                        )
-                        .child(
-                            div()
-                                .fs(font::CAPTION)
-                                .text_color(theme::text_2())
-                                .child("Escanear tarda un momento y no cambia nada en tu Mac."),
-                        ),
-                )
-                .child(
-                    Btn::primary("Escanear", theme::brand_stops())
-                        .size(BtnSize::Lg)
-                        .icon(Icon::Scan)
-                        .build(
-                            "scan-start",
-                            cx.listener(|this, _, _, cx| this.start_scan(cx)),
-                        )
-                        .w_full(),
-                )
-                .into_any_element()
+            (
+                col()
+                    .gap(sp(1.))
+                    .child(
+                        div()
+                            .fs(font::SUBHEAD)
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .child("¿Cuánto puedes recuperar?"),
+                    )
+                    .child(
+                        div()
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_2())
+                            .child("Escanear tarda un momento y no cambia nada en tu Mac."),
+                    )
+                    .into_any_element(),
+                Btn::primary("Escanear", theme::brand_stops())
+                    .size(BtnSize::Lg)
+                    .icon(Icon::Scan)
+                    .build(
+                        "scan-start",
+                        cx.listener(|this, _, _, cx| this.start_scan(cx)),
+                    ),
+            )
         };
-        card()
-            .flex()
-            .flex_col()
-            .flex_none()
-            .w(px(236.))
-            .min_h(px(176.))
-            .p(sp(4.))
-            .child(content)
+        let card = card().flex().p(sp(4.));
+        if flat {
+            card.flex_row()
+                .items_center()
+                .w_full()
+                .gap(sp(6.))
+                .child(div().flex_1().min_w(px(0.)).child(info))
+                .child(action.flex_none().w(px(220.)))
+        } else {
+            card.flex_col()
+                .flex_none()
+                .w(px(236.))
+                .min_h(px(176.))
+                .gap(sp(3.))
+                .child(info)
+                .child(action.w_full())
+        }
     }
 
     fn render_disk_usage(&self) -> impl IntoElement {
@@ -345,6 +390,8 @@ impl Shell {
                         .items_start()
                         .children(AREAS.map(|area| self.area_tile(area, cx))),
                 )
+                .child(div().mt(sp(4.)).child(section_title_row("Cómo funciona")))
+                .child(how_it_works())
                 .into_any_element();
         }
         let failures = self.scan.failures();
@@ -427,6 +474,63 @@ impl Shell {
     }
 }
 
+/// Three steps that say, before anything is touched, why it is safe to press the button.
+fn how_it_works() -> impl IntoElement {
+    let step = |which: Icon, title: &'static str, detail: &'static str| {
+        row()
+            .flex_1()
+            .min_w(px(0.))
+            .gap(sp(3.))
+            .items_start()
+            .child(
+                row()
+                    .flex_none()
+                    .size(px(32.))
+                    .justify_center()
+                    .rounded(px(radius::MD))
+                    .bg(theme::surface_2())
+                    .child(icon(which, 16.0, theme::text_2())),
+            )
+            .child(
+                col()
+                    .flex_1()
+                    .min_w(px(0.))
+                    .gap(sp(0.5))
+                    .child(
+                        div()
+                            .fs(font::BODY)
+                            .font_weight(FontWeight::MEDIUM)
+                            .child(title),
+                    )
+                    .child(
+                        div()
+                            .fs(font::CAPTION)
+                            .text_color(theme::text_2())
+                            .child(detail),
+                    ),
+            )
+    };
+    row()
+        .w_full()
+        .gap(sp(6.))
+        .items_start()
+        .child(step(
+            Icon::Scan,
+            "Escanea",
+            "Solo mira: no mueve ni borra nada.",
+        ))
+        .child(step(
+            Icon::Shield,
+            "Revisa",
+            "Lo que no se regenera solo nunca viene marcado de antemano.",
+        ))
+        .child(step(
+            Icon::Trash,
+            "Limpia",
+            "Por defecto va a la Papelera, así que puedes recuperarlo.",
+        ))
+}
+
 pub(super) fn section_title_row(text: &'static str) -> impl IntoElement {
     div()
         .fs(font::SUBHEAD)
@@ -493,7 +597,15 @@ fn headline_for(score: u8) -> String {
     .to_string()
 }
 
-fn sub_for(score: u8, factors: usize) -> String {
+fn sub_for(score: u8, factors: usize, provisional: bool) -> String {
+    if provisional {
+        return if factors == 0 {
+            "Puntuación provisional hasta que escanees. De momento, nada te debe preocupar."
+        } else {
+            "Puntuación provisional hasta que escanees. De momento, esto es lo que más pesa:"
+        }
+        .to_string();
+    }
     match (score, factors) {
         (_, 0) => "No hay nada que te deba preocupar ahora mismo.".to_string(),
         (85..=100, _) => "Solo unos detalles, por si quieres afinar:".to_string(),

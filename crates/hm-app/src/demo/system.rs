@@ -112,6 +112,8 @@ fn process(pid: u32, name: &str, cpu: f32, memory: u64) -> ProcessStats {
     }
 }
 
+/// `reclaimable` is what `hm_system::health::reclaimable_bytes` counts, and the factor it adds reads
+/// like the real one, so the demo shows what the app would.
 pub fn health(reclaimable: u64) -> HealthReport {
     let mut factors = vec![
         HealthFactor {
@@ -132,12 +134,11 @@ pub fn health(reclaimable: u64) -> HealthReport {
         factors.insert(
             1,
             HealthFactor {
-                title: format!(
-                    "Hay {} que podrías recuperar",
+                title: "Espacio recuperable".to_string(),
+                detail: format!(
+                    "{} de cachés y archivos que se pueden regenerar. Limpiarlos no pierde nada importante.",
                     hm_core::fmt::human_size(reclaimable)
                 ),
-                detail: "Sobre todo compilaciones y cachés de desarrollo, que se regeneran solas."
-                    .to_string(),
                 severity: Severity::Info,
                 penalty: 6,
             },
